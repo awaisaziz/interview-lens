@@ -1,0 +1,54 @@
+{
+  "id": "interview-lens",
+  "name": "Interview Lens",
+  "group": "Hiring",
+  "description": "Turn a candidate's take-home project into a structured interview brief.",
+  "version": "0.1.0",
+  "author": "ARI",
+  "icon": "Microscope",
+  "enabled": true,
+  "fullscreen": false,
+  "menuPriority": 50,
+  "permissions": {
+    "database": true,
+    "api": true,
+    "dashboard": true
+  },
+  "routes": [
+    {
+      "path": "/interview-lens",
+      "label": "Interview Lens",
+      "icon": "Microscope",
+      "sidebarPosition": "main"
+    },
+    {
+      "path": "/interview-lens/new",
+      "label": "New Submission",
+      "icon": "Plus",
+      "sidebarPosition": "none"
+    }
+  ],
+  "dependencies": {
+    "modules": [],
+    "coreFeatures": []
+  },
+  "database": {
+    "tables": ["interview_lens_roles", "interview_lens_submissions", "interview_lens_briefs", "interview_lens_questions"]
+  },
+  "npmDependencies": {
+    "react-markdown": "^9.0.1",
+    "rehype-sanitize": "^6.0.0"
+  },
+  "dashboard": {
+    "widgets": true,
+    "widgetComponents": ["./components/dashboard-pipeline-widget.tsx"]
+  },
+  "settings": {
+    "panel": "./components/settings-panel.tsx"
+  },
+  "topBarIcon": {
+    "icon": "Microscope",
+    "route": "/interview-lens",
+    "tooltip": "Interview Lens"
+  }
+}
