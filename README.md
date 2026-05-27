@@ -1,37 +1,83 @@
-# Interview Lens
+# Interview Lens — an ARI module
 
-An ARI module that turns a candidate's take-home project into a structured interview brief.
+Turn a candidate's take-home project into a structured interview brief in seconds, not an hour. Tells you the difference between a candidate who **built** their project and one who **prompted** it.
+
+> Built for the [ARI](https://github.com/) personal OS — drop the folder into `modules-custom/interview-lens/` of an ARI install, restart, and the schema, sidebar entry, dashboard widget, and settings panel wire themselves up.
 
 ## What it does
 
-- Ingest a candidate submission as **pasted code/README** (primary) or a **public GitHub URL** (secondary).
-- Run a one-shot OpenAI Structured-Outputs call that returns:
-  - Plain-language project summary
+- **Ingest** a candidate submission as pasted code/README (primary) or a public GitHub URL (secondary, best-effort).
+- **Analyze** with one OpenAI Structured-Outputs call that returns:
+  - A plain-language project summary
   - Detected stack
   - Architecture notes
-  - Tiered (easy / medium / hard) interview questions, each tied to a file with a strong-answer rubric
-  - **Signal report** flagging hand-crafted vs AI-scaffolded code and sophistication mismatches
-- Capture interviewer notes + 1–5 scores per question, live, on the detail page.
-- Dashboard widget shows a candidate pipeline grouped by role.
+  - Tiered (easy / medium / hard) interview questions, each tied to a specific file, with a *strong-answer rubric* so even a non-expert interviewer can evaluate responses
+  - A **signal report** flagging where the candidate made real decisions vs where the code looks like untouched AI scaffolding
+- **Capture** interviewer notes and 1–5 scores per question, live, on the detail page.
+- **Pipeline view** on the dashboard groups candidates by role with average scores.
 
-## Setup
+## Installation
 
-1. Drop an `OPENAI_API_KEY=sk-...` into `.env.local`.
-2. Enable the module from Settings → Features (or it auto-installs on first boot since `enabled: true`).
-3. Open Settings → Interview Lens → create a role with focus notes.
-4. Visit `/interview-lens/new` to submit a candidate.
+```bash
+# from the root of an ARI clone
+cp -R ari-interview-lens modules-custom/interview-lens
+pnpm install
+node scripts/generate-module-registry.js
+# add OPENAI_API_KEY=sk-... to .env.local
+./ari start   # or .\ari.cmd start on Windows
+```
 
-## Security notes (built in)
+Then in the ARI UI:
 
-- All routes use `getAuthenticatedUser()` + `withRLS()` — strict per-user isolation.
-- RLS policies use `current_setting('app.current_user_id', true)` so a missing setting returns NULL instead of throwing.
-- Candidate input is wrapped in `<UNTRUSTED_CANDIDATE_INPUT>` tags in the LLM prompt; the system message instructs the model to treat it as data, not instructions, and to flag injection attempts.
-- OpenAI **Structured Outputs** (`json_schema`, `strict: true`) is used — then re-validated with Zod before persisting.
-- Markdown is rendered with `react-markdown` + `rehype-sanitize` (no raw HTML).
-- `raw_model_output` is stored DB-only for debugging; it is never rendered in the UI.
+1. Settings → Interview Lens → add at least one role (with focus notes — what your team cares about for this position).
+2. `/interview-lens/new` → submit a candidate.
+3. On the submission page, click **Generate brief**.
+4. Walk the brief and questions during the live interview, jot notes, score 1–5 per question.
 
-## Future work
+## Security model
 
-- **Zip upload ingestion.** Cut from v1 because zip bombs, path traversal, MIME validation, and storage cleanup are too many failure modes for a 2-hour build. The schema already separates `source_type`, so adding an `uploaded_zip` path later is non-breaking.
-- Multi-call LLM pipeline (separate summary / questions / signal calls) for richer briefs.
-- Re-analyze with a different model / prompt without dropping interviewer notes.
+The candidate's project is **untrusted input**. The module's defenses:
+
+| Risk | Mitigation |
+|---|---|
+| Prompt injection in README/code | Candidate text is wrapped in `<UNTRUSTED_CANDIDATE_INPUT>` tags. The system message tells the model to treat everything inside as data, ignore directives, and flag injection attempts in the signal report. |
+| Model schema drift | Uses OpenAI **Structured Outputs** (`json_schema`, `strict: true`), then re-validates with Zod before persisting. Anything off-schema → `status='failed'` with a stored `error_message`, never a partial write. |
+| Markdown XSS | Rendered with `react-markdown` + `rehype-sanitize`. Raw HTML stripped. |
+| Tenant isolation | Every API route calls `getAuthenticatedUser()` + `withRLS()`. RLS policies use `current_setting('app.current_user_id', true)` so a missing setting returns NULL rather than throwing. |
+| GitHub rate-limit (60/hr unauth) | Paste is the primary path. GitHub is single-attempt with graceful "paste instead" fallback. The digest is **persisted on the submission row** so re-analyze never refetches. |
+| Sensitive raw model output | Stored in `raw_model_output` JSONB for server-side debug only — never rendered in the UI. |
+| Zip-bomb / path traversal | Zip upload is **not implemented** in v1. Documented as future work. |
+
+## Architecture
+
+```
+modules-custom/interview-lens/
+├── module.json              # ARI manifest
+├── database/
+│   ├── schema.sql           # idempotent, RLS-enabled, auto-applies on enable
+│   ├── schema.ts            # Drizzle table definitions
+│   └── uninstall.sql        # manual-only teardown
+├── api/
+│   ├── roles/               # CRUD
+│   ├── submissions/
+│   │   ├── route.ts         # ingest (builds + persists repo_digest)
+│   │   └── [id]/
+│   │       ├── route.ts     # detail (brief + questions joined)
+│   │       └── analyze/     # one-shot OpenAI call, transactional persist
+│   ├── questions/[id]/      # PATCH notes/score
+│   ├── pipeline/            # rollup for dashboard widget
+│   └── settings/            # JSONB upsert
+├── app/                     # /interview-lens UI (list, new, detail)
+├── components/              # widget, settings panel, role manager, etc.
+├── hooks/                   # TanStack Query
+├── lib/
+│   ├── digest.ts            # ingest → repo_digest (paste + GitHub paths)
+│   ├── prompts.ts           # system + user prompt with injection guard
+│   ├── openai.ts            # raw-fetch client, Structured Outputs
+│   └── validation.ts        # Zod schemas (request + model output) + JSON Schema
+└── types/
+```
+
+## License
+
+MIT
