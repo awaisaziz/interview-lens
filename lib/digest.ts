@@ -96,7 +96,7 @@ function parseGithubUrl(url: string): { owner: string; repo: string } | null {
     if (segs.length < 2) return null
     const owner = segs[0]
     const repo = segs[1].replace(/\.git$/i, '')
-    if (!/^[\w.-]+$/.test(owner) || !/^[\w.-]+$/.test(repo)) return null
+    if (!/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,38}[a-zA-Z0-9])?$/.test(owner) || !/^[\w.-]{1,100}$/.test(repo)) return null
     return { owner, repo }
   } catch {
     return null
@@ -141,11 +141,19 @@ function rankFiles(blobs: Array<{ path: string; size: number }>): Array<{ path: 
   return usable.slice(0, MAX_FILES * 2) // overfetch — we'll truncate during read
 }
 
+const FETCH_TIMEOUT_MS = 8_000
+const MAX_RESPONSE_BYTES = 2_000_000 // 2 MB guard
+
 async function fetchJson(url: string): Promise<any | null> {
   try {
-    const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json' } })
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    })
     if (!res.ok) return null
-    return await res.json()
+    const text = await res.text()
+    if (text.length > MAX_RESPONSE_BYTES) return null
+    return JSON.parse(text)
   } catch {
     return null
   }
@@ -153,9 +161,11 @@ async function fetchJson(url: string): Promise<any | null> {
 
 async function fetchText(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url)
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
     if (!res.ok) return null
-    return await res.text()
+    const text = await res.text()
+    if (text.length > MAX_RESPONSE_BYTES) return null
+    return text
   } catch {
     return null
   }

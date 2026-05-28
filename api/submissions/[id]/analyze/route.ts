@@ -6,6 +6,9 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { generateBrief, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildSystemPrompt, buildUserPrompt } from '@/modules/interview-lens/lib/prompts'
+import type { BriefOutput } from '@/modules/interview-lens/lib/validation'
+
+const ANALYZE_COOLDOWN_MS = 60_000
 
 const uuidParam = z.string().uuid()
 
@@ -26,6 +29,20 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   const submission = subs[0]
   if (!submission.repoDigest) {
     return createErrorResponse('Submission has no digest to analyze', 422)
+  }
+
+  // Rate-limit: reject if a brief was generated within the last 60 seconds.
+  const recentBriefs = await withRLS((db) =>
+    db.select({ generatedAt: interviewLensBriefs.generatedAt })
+      .from(interviewLensBriefs)
+      .where(and(eq(interviewLensBriefs.submissionId, id), eq(interviewLensBriefs.userId, user.id)))
+      .limit(1)
+  )
+  if (recentBriefs.length > 0) {
+    const age = Date.now() - new Date(recentBriefs[0].generatedAt).getTime()
+    if (age < ANALYZE_COOLDOWN_MS) {
+      return createErrorResponse('Analysis was run recently. Please wait before re-analyzing.', 429)
+    }
   }
 
   const roles = await withRLS((db) =>
@@ -50,34 +67,34 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       }),
     })
 
-    // Persist brief + questions, then flip status. Drizzle's pool doesn't
-    // expose nested transactions here cleanly across withRLS, so we replace
-    // any existing brief/questions (idempotent re-analyze) instead.
+    // Persist brief + questions atomically, then flip status.
     await withRLS(async (db) => {
-      await db.delete(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id))
-      await db.delete(interviewLensBriefs).where(eq(interviewLensBriefs.submissionId, id))
-      await db.insert(interviewLensBriefs).values({
-        userId: user.id,
-        submissionId: id,
-        summaryMd: output.summary_md,
-        stackJson: output.stack,
-        architectureMd: output.architecture_md,
-        signalReportMd: output.signal_report_md,
-        rawModelOutput: raw as any,
+      await db.transaction(async (tx) => {
+        await tx.delete(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id))
+        await tx.delete(interviewLensBriefs).where(eq(interviewLensBriefs.submissionId, id))
+        await tx.insert(interviewLensBriefs).values({
+          userId: user.id,
+          submissionId: id,
+          summaryMd: output.summary_md,
+          stackJson: output.stack,
+          architectureMd: output.architecture_md,
+          signalReportMd: output.signal_report_md,
+          rawModelOutput: raw as unknown as BriefOutput,
+        })
+        if (output.questions.length > 0) {
+          await tx.insert(interviewLensQuestions).values(
+            output.questions.map((q, i) => ({
+              userId: user.id,
+              submissionId: id,
+              tier: q.tier,
+              prompt: q.prompt,
+              anchorFile: q.anchor_file,
+              strongAnswerMd: q.strong_answer_md,
+              sortOrder: i,
+            })),
+          )
+        }
       })
-      if (output.questions.length > 0) {
-        await db.insert(interviewLensQuestions).values(
-          output.questions.map((q, i) => ({
-            userId: user.id,
-            submissionId: id,
-            tier: q.tier,
-            prompt: q.prompt,
-            anchorFile: q.anchor_file,
-            strongAnswerMd: q.strong_answer_md,
-            sortOrder: i,
-          })),
-        )
-      }
       await db.update(interviewLensSubmissions)
         .set({ status: 'ready', errorMessage: null })
         .where(eq(interviewLensSubmissions.id, id))

@@ -6,6 +6,7 @@ import type { Role, Submission, SubmissionDetail, PipelineRow, Question } from '
 const ROLES_KEY = ['interview-lens', 'roles']
 const SUBMISSIONS_KEY = ['interview-lens', 'submissions']
 const PIPELINE_KEY = ['interview-lens', 'pipeline']
+const SETTINGS_KEY = ['interview-lens', 'settings']
 const submissionKey = (id: string) => ['interview-lens', 'submission', id]
 
 async function jsonOrThrow(res: Response): Promise<any> {
@@ -196,8 +197,6 @@ export function usePipeline() {
 }
 
 // ─── Settings ───────────────────────────────────────────────────────────
-const SETTINGS_KEY = ['interview-lens', 'settings']
-
 export function useInterviewLensSettings() {
   return useQuery({
     queryKey: SETTINGS_KEY,

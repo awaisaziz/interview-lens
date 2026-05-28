@@ -35,7 +35,9 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
           architectureMd: interviewLensBriefs.architectureMd,
           signalReportMd: interviewLensBriefs.signalReportMd,
           generatedAt: interviewLensBriefs.generatedAt,
-        }).from(interviewLensBriefs).where(eq(interviewLensBriefs.submissionId, id)).limit(1)
+        }).from(interviewLensBriefs)
+          .where(and(eq(interviewLensBriefs.submissionId, id), eq(interviewLensBriefs.userId, user.id)))
+          .limit(1)
       ),
       withRLS((db) =>
         db.select().from(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id)).orderBy(asc(interviewLensQuestions.sortOrder))

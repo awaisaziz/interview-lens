@@ -82,10 +82,10 @@ function RoleRow({ role }: { role: Role }) {
         {role.focus_notes && <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-2">{role.focus_notes}</p>}
       </div>
       <div className="flex items-center gap-1 shrink-0">
-        <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="h-7 w-7 p-0">
+        <Button variant="ghost" size="sm" onClick={() => setEditing(true)} className="h-7 w-7 p-0" aria-label="Edit role">
           <Pencil className="w-3.5 h-3.5" />
         </Button>
-        <Button variant="ghost" size="sm" onClick={handleDelete} disabled={deleteRole.isPending} className="h-7 w-7 p-0 text-red-600 hover:text-red-700">
+        <Button variant="ghost" size="sm" onClick={handleDelete} disabled={deleteRole.isPending} className="h-7 w-7 p-0 text-red-600 hover:text-red-700" aria-label="Delete role">
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>

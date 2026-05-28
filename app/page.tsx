@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { Loader2, Microscope, Plus, Settings, Trash2 } from 'lucide-react'
+import { Loader2, Microscope, Plus, Settings, Trash2, AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useRoles, useSubmissions, useDeleteSubmission } from '../hooks/use-interview-lens'
 import { useToast } from '@/hooks/use-toast'
 import { RoleManager } from '../components/role-manager'
@@ -19,7 +20,7 @@ const statusColor: Record<string, string> = {
 }
 
 export default function InterviewLensListPage() {
-  const { data: submissions = [], isLoading } = useSubmissions()
+  const { data: submissions = [], isLoading, isError } = useSubmissions()
   const { data: roles = [] } = useRoles()
   const deleteSubmission = useDeleteSubmission()
   const { toast } = useToast()
@@ -68,6 +69,11 @@ export default function InterviewLensListPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center"><Loader2 className="w-4 h-4 animate-spin" />Loading…</div>
+          ) : isError ? (
+            <Alert variant="destructive" className="my-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>Failed to load submissions. Please refresh the page.</AlertDescription>
+            </Alert>
           ) : submissions.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               <Microscope className="w-10 h-10 mx-auto mb-2 opacity-50" />
@@ -88,7 +94,7 @@ export default function InterviewLensListPage() {
                         {role?.title ?? '(deleted role)'} · {s.source_type === 'github_url' ? 'GitHub' : 'Pasted'} · {new Date(s.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
+                    <Button variant="ghost" size="sm" className="text-red-600" disabled={deleteSubmission.isPending} aria-label="Delete submission" onClick={() => {
                       if (confirm(`Delete submission for ${s.candidate_name}?`)) {
                         deleteSubmission.mutate(s.id, { onError: (e) => toast({ variant: 'destructive', title: 'Delete failed', description: e.message }) })
                       }

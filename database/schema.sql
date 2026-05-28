@@ -67,8 +67,10 @@ CREATE TABLE IF NOT EXISTS interview_lens_briefs (
   architecture_md TEXT NOT NULL,
   signal_report_md TEXT NOT NULL,
   raw_model_output JSONB,
-  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_il_briefs_user ON interview_lens_briefs(user_id);
 CREATE INDEX IF NOT EXISTS idx_il_briefs_submission ON interview_lens_briefs(submission_id);
 ALTER TABLE interview_lens_briefs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS il_briefs_rls_select ON interview_lens_briefs;
@@ -95,9 +97,11 @@ CREATE TABLE IF NOT EXISTS interview_lens_questions (
   strong_answer_md TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0,
   interviewer_notes TEXT NOT NULL DEFAULT '',
-  score INTEGER CHECK (score IS NULL OR (score BETWEEN 1 AND 5))
+  score INTEGER CHECK (score IS NULL OR (score BETWEEN 1 AND 5)),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_il_questions_submission ON interview_lens_questions(submission_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_il_questions_user_submission ON interview_lens_questions(user_id, submission_id, sort_order);
 ALTER TABLE interview_lens_questions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS il_questions_rls_select ON interview_lens_questions;
 CREATE POLICY il_questions_rls_select ON interview_lens_questions FOR SELECT

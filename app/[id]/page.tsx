@@ -6,11 +6,14 @@ import { Loader2, ChevronLeft, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useSubmission } from '../../hooks/use-interview-lens'
 import { SubmissionDetailView } from '../../components/submission-detail'
+import { z } from 'zod'
+
+const uuidSchema = z.string().uuid()
 
 export default function SubmissionDetailPage() {
   const pathname = usePathname()
-  // Extract the UUID segment from the URL path (last segment)
-  const id = pathname?.split('/').at(-1) ?? null
+  const rawId = pathname?.split('/').at(-1) ?? ''
+  const id = uuidSchema.safeParse(rawId).success ? rawId : null
   const { data, isLoading, isError, error } = useSubmission(id)
 
   return (

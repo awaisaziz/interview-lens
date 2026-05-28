@@ -29,6 +29,10 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
     setScore(question.score)
   }, [question.id, question.interviewer_notes, question.score])
 
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [])
+
   const flush = (patch: { interviewer_notes?: string; score?: number | null }) => {
     update.mutate({ id: question.id, ...patch })
   }

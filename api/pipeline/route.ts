@@ -2,23 +2,27 @@ import { NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
 import { createErrorResponse } from '@/lib/api-helpers'
 import { interviewLensRoles, interviewLensSubmissions, interviewLensQuestions } from '@/lib/db/schema'
-import { avg, eq, sql, desc } from 'drizzle-orm'
+import { avg, eq, inArray, desc } from 'drizzle-orm'
 
 export async function GET() {
   try {
     const { user, withRLS } = await getAuthenticatedUser()
     if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
 
-    // Pull roles + submissions, then compute average score per submission.
-    const [roles, subs, scores] = await Promise.all([
-      withRLS((db) =>
-        db.select().from(interviewLensRoles)
-          .where(eq(interviewLensRoles.userId, user.id))
-          .orderBy(desc(interviewLensRoles.createdAt))
-      ),
+    // Pull roles first, then filter submissions by those role IDs in SQL.
+    const roles = await withRLS((db) =>
+      db.select().from(interviewLensRoles)
+        .where(eq(interviewLensRoles.userId, user.id))
+        .orderBy(desc(interviewLensRoles.createdAt))
+    )
+
+    const roleIds = roles.map((r) => r.id)
+    if (roleIds.length === 0) return NextResponse.json({ pipeline: [] })
+
+    const [subs, scores] = await Promise.all([
       withRLS((db) =>
         db.select().from(interviewLensSubmissions)
-          .where(eq(interviewLensSubmissions.userId, user.id))
+          .where(inArray(interviewLensSubmissions.roleId, roleIds))
           .orderBy(desc(interviewLensSubmissions.createdAt))
       ),
       withRLS((db) =>

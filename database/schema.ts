@@ -49,7 +49,9 @@ export const interviewLensBriefs = pgTable("interview_lens_briefs", {
   signalReportMd: text("signal_report_md").notNull(),
   rawModelOutput: jsonb("raw_model_output"),
   generatedAt: timestamp("generated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
+  index("idx_il_briefs_user").using("btree", table.userId.asc().nullsLast().op("text_ops")),
   index("idx_il_briefs_submission").using("btree", table.submissionId.asc().nullsLast().op("uuid_ops")),
   pgPolicy("il_briefs_rls_select", { as: "permissive", for: "select", to: ["public"], using: rlsUserMatch }),
   pgPolicy("il_briefs_rls_insert", { as: "permissive", for: "insert", to: ["public"], withCheck: rlsUserMatch }),
@@ -68,8 +70,10 @@ export const interviewLensQuestions = pgTable("interview_lens_questions", {
   sortOrder: integer("sort_order").notNull().default(0),
   interviewerNotes: text("interviewer_notes").notNull().default(''),
   score: integer(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
-  index("idx_il_questions_submission").using("btree", table.submissionId.asc().nullsLast().op("uuid_ops"), table.sortOrder.asc().nullsLast().op("int4_ops")),
+  index("idx_il_questions_user_submission").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.submissionId.asc().nullsLast().op("uuid_ops"), table.sortOrder.asc().nullsLast().op("int4_ops")),
   pgPolicy("il_questions_rls_select", { as: "permissive", for: "select", to: ["public"], using: rlsUserMatch }),
   pgPolicy("il_questions_rls_insert", { as: "permissive", for: "insert", to: ["public"], withCheck: rlsUserMatch }),
   pgPolicy("il_questions_rls_update", { as: "permissive", for: "update", to: ["public"], using: rlsUserMatch }),
