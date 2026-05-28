@@ -18,21 +18,68 @@ Turn a candidate's take-home project into a structured interview brief in second
 
 ## Installation
 
+### 1. Clone the module into your ARI install
+
+From the root of your ARI clone, pull this repo directly into the `modules-custom` folder:
+
 ```bash
-# from the root of an ARI clone
-cp -R ari-interview-lens modules-custom/interview-lens
-pnpm install
-node scripts/generate-module-registry.js
-# add OPENAI_API_KEY=sk-... to .env.local
-./ari start   # or .\ari.cmd start on Windows
+git clone https://github.com/awaisaziz/interview-lens.git modules-custom/interview-lens
 ```
 
-Then in the ARI UI:
+> **Windows (PowerShell)**
+> ```powershell
+> git clone https://github.com/awaisaziz/interview-lens.git modules-custom\interview-lens
+> ```
+
+### 2. Run the module audit
+
+The ARI module audit checks the module is well-formed and ready to activate:
+
+```bash
+# Claude Code CLI (recommended)
+claude /ari-audit-module interview-lens
+```
+
+Or manually verify that `module.json` is present and the database schema looks correct — but the audit command does this automatically.
+
+### 3. Install dependencies and activate
+
+```bash
+pnpm install
+node scripts/generate-module-registry.js
+```
+
+Add your OpenAI key to `.env.local`:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+Then start ARI:
+
+```bash
+./ari start        # macOS / Linux
+.\ari.cmd start    # Windows
+```
+
+### 4. Configure and use
 
 1. Settings → Interview Lens → add at least one role (with focus notes — what your team cares about for this position).
 2. `/interview-lens/new` → submit a candidate.
 3. On the submission page, click **Generate brief**.
 4. Walk the brief and questions during the live interview, jot notes, score 1–5 per question.
+
+### Updating
+
+To pull the latest version of the module:
+
+```bash
+cd modules-custom/interview-lens
+git pull
+cd ../..
+node scripts/generate-module-registry.js
+./ari start   # restart to pick up any schema changes
+```
 
 ## Security model
 
