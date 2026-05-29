@@ -234,6 +234,23 @@ export function useGenerateReport(submissionId: string) {
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
+      qc.invalidateQueries({ queryKey: ['interview-lens', 'report', submissionId] })
+      qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
+      qc.invalidateQueries({ queryKey: PIPELINE_KEY })
+      qc.invalidateQueries({ queryKey: REPORTS_KEY })
+    },
+  })
+}
+
+export function useDeleteReport() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (submissionId: string): Promise<void> => {
+      await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`, { method: 'DELETE' }))
+    },
+    onSettled: (_d, _e, submissionId) => {
+      qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
+      qc.invalidateQueries({ queryKey: ['interview-lens', 'report', submissionId] })
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
       qc.invalidateQueries({ queryKey: PIPELINE_KEY })
       qc.invalidateQueries({ queryKey: REPORTS_KEY })

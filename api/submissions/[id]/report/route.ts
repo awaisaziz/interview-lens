@@ -47,6 +47,20 @@ registry.registerPath({
   },
 })
 
+registry.registerPath({
+  method: 'delete',
+  path: '/api/modules/interview-lens/submissions/{id}/report',
+  operationId: 'deleteInterviewLensReport',
+  summary: 'Delete the generated report for a submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Report deleted', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
 const uuidParam = z.string().uuid()
 
 export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -162,6 +176,36 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       return createErrorResponse(`AI error: ${err.message}`, 502)
     }
     console.error('POST report error:', err instanceof Error ? err.message : err)
+    return createErrorResponse('Internal server error', 500)
+  }
+}
+
+export async function DELETE(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await ctx.params
+    if (!uuidParam.safeParse(id).success) return createErrorResponse('Invalid id', 400)
+    const { user, withRLS } = await getAuthenticatedUser()
+    if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
+
+    await withRLS((db) =>
+      db.delete(interviewLensReports)
+        .where(and(eq(interviewLensReports.submissionId, id), eq(interviewLensReports.userId, user.id)))
+    )
+
+    // Roll the submission back to 'ready' so the interview can be re-submitted.
+    await withRLS((db) =>
+      db.update(interviewLensSubmissions)
+        .set({ status: 'ready' })
+        .where(and(
+          eq(interviewLensSubmissions.id, id),
+          eq(interviewLensSubmissions.userId, user.id),
+          eq(interviewLensSubmissions.status, 'interviewed'),
+        ))
+    )
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('DELETE report error:', err instanceof Error ? err.message : err)
     return createErrorResponse('Internal server error', 500)
   }
 }

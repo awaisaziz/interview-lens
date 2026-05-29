@@ -26,6 +26,12 @@
       "label": "New Submission",
       "icon": "Plus",
       "sidebarPosition": "none"
+    },
+    {
+      "path": "/interview-lens/reports",
+      "label": "Reports",
+      "icon": "FileText",
+      "sidebarPosition": "main"
     }
   ],
   "dependencies": {

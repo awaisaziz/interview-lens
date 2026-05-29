@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ArrowLeft, FileText, AlertCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, AlertCircle, Trash2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useRoles, useReports } from '../../hooks/use-interview-lens'
+import { useRoles, useReports, useDeleteReport } from '../../hooks/use-interview-lens'
+import { useToast } from '@/hooks/use-toast'
 
 function hireScoreColor(score: number) {
   if (score >= 70) return 'bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200'
@@ -20,6 +21,8 @@ export default function ReportsListPage() {
   const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(undefined)
   const { data: roles = [] } = useRoles()
   const { data: reports = [], isLoading, isError } = useReports(selectedRoleId)
+  const deleteReport = useDeleteReport()
+  const { toast } = useToast()
 
   const roleCounts = reports.reduce<Record<string, number>>((acc, r) => {
     acc[r.role_id] = (acc[r.role_id] ?? 0) + 1
@@ -112,7 +115,33 @@ export default function ReportsListPage() {
                       {r.role_title} · {new Date(r.generated_at).toLocaleString()}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm" className="shrink-0">View</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/interview-lens/reports/${r.submission_id}`)
+                    }}
+                  >
+                    <FileText className="w-4 h-4 mr-1" />View
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                    aria-label="Delete report"
+                    disabled={deleteReport.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!confirm(`Delete the report for ${r.candidate_name}? The interview answers and scores are kept.`)) return
+                      deleteReport.mutate(r.submission_id, {
+                        onError: (err) => toast({ variant: 'destructive', title: 'Delete failed', description: err.message }),
+                      })
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ))}
             </CardContent>

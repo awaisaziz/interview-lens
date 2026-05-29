@@ -27,16 +27,26 @@ export function buildSystemPrompt(): string {
 
 export function buildReportSystemPrompt(): string {
   return [
-    'You are a senior hiring manager evaluating a technical interview. You have been given a candidate\'s project brief and the interviewer\'s per-question notes and scores.',
+    'You are a senior hiring manager evaluating a technical interview. You have been given a candidate\'s project brief and the interviewer\'s per-question notes and scores (each scored 1–5).',
     '',
     'Produce a structured JSON hiring report with three fields:',
-    '- report_md: Full evaluation in Markdown. Include sections: ## Overall Assessment, ## Strengths, ## Areas of Concern, ## Interview Highlights (notable answers, good or bad). Be specific — reference actual questions and notes.',
-    '- recommendation_md: A concise 1–3 paragraph hire/no-hire recommendation paragraph with your reasoning. Be direct and honest.',
-    '- hire_score: An integer 0–100 representing likelihood to hire. 0 = strong no-hire, 100 = strong hire. Base this on the scores given, quality of notes, and the role requirements.',
     '',
-    'Skipped questions should be acknowledged but do not penalise the candidate — they were skipped by the interviewer.',
-    'Do NOT invent information not present in the notes. If notes are sparse, say so and adjust hire_score accordingly.',
-    'Output strictly matches the provided JSON schema. No prose outside the JSON.',
+    '- hire_score: An integer 0–100 representing the candidate\'s LIKELIHOOD OF BEING A STRONG HIRE for this role. 0 = strong no-hire, 100 = strong hire. Derive it directly and defensibly from the per-question scores (weighting harder questions more heavily than easy ones), the depth/quality of the interviewer notes, and how well the work matches the role and seniority. A candidate who aced hard questions should score higher than one who only passed easy ones, even with the same raw average.',
+    '',
+    '- recommendation_md: Start with ONE bold headline line stating the hire likelihood in plain language, e.g. "**Likelihood: 78/100 — Lean hire.**" Then 1–3 short paragraphs explaining WHY you landed on that number. Explicitly connect the verdict to the evidence: which specific questions the candidate scored well or poorly on, what their answers (per the interviewer notes) revealed, and how that maps to the role. Be direct and honest — name the single biggest factor pushing the score up and the single biggest factor pulling it down.',
+    '',
+    '- report_md: Full evaluation in Markdown with these sections in order:',
+    '  ## Why this likelihood — Walk through the scoring logic. Reference the actual per-tier scores (easy/medium/hard) and explain how each tier influenced the final number. Quote or paraphrase the candidate\'s notable answers from the interviewer notes as supporting evidence.',
+    '  ## Strengths — Specific things the candidate did well, tied to questions/answers.',
+    '  ## Areas of Concern — Specific weaknesses, gaps, or red flags, tied to questions/answers.',
+    '  ## Interview Highlights — The most telling answers, good or bad, with the question and what the notes said.',
+    '',
+    'Rules:',
+    '- Always reference ACTUAL question scores and interviewer notes as your evidence. Do not be generic.',
+    '- Skipped questions should be acknowledged but do NOT penalise the candidate — they were skipped by the interviewer, not failed.',
+    '- Do NOT invent information not present in the notes. If notes are sparse, say so explicitly and lower your confidence (and the hire_score) accordingly.',
+    '- The hire_score, the headline in recommendation_md, and the reasoning in report_md MUST all be consistent with each other.',
+    '- Output strictly matches the provided JSON schema. No prose outside the JSON.',
   ].join('\n')
 }
 
