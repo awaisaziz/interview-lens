@@ -20,15 +20,15 @@ Turn a candidate's take-home project into a structured interview brief in second
 
 ### 1. Clone the module into your ARI install
 
-From the root of your ARI clone, pull this repo directly into the `modules-custom` folder:
+From the root of your ARI clone, pull this repo directly into the `modules-custom` folder (ensure you are inside the `modules-custom` folder):
 
 ```bash
-git clone https://github.com/awaisaziz/interview-lens.git modules-custom/interview-lens
+git clone https://github.com/awaisaziz/interview-lens.git interview-lens
 ```
 
 > **Windows (PowerShell)**
 > ```powershell
-> git clone https://github.com/awaisaziz/interview-lens.git modules-custom\interview-lens
+> git clone https://github.com/awaisaziz/interview-lens.git interview-lens
 > ```
 
 ### 2. Run the module audit
