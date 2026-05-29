@@ -29,20 +29,24 @@ function ScoreIcon({ score }: { score: number | null }) {
 
 function ScoreDots({ score, total = 5 }: { score: number | null; total?: number }) {
   return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`w-2.5 h-2.5 rounded-full border ${
-            score != null && i < score
-              ? score >= 4 ? 'bg-green-500 border-green-500'
-                : score >= 3 ? 'bg-amber-400 border-amber-400'
-                : 'bg-red-400 border-red-400'
-              : 'bg-muted border-muted-foreground/20'
-          }`}
-        />
-      ))}
-    </div>
+    <>
+      <div className="flex items-center gap-0.5">
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            title={`Score dot ${i + 1} of ${total}`}
+            className={`w-2.5 h-2.5 rounded-full border ${
+              score != null && i < score
+                ? score >= 4 ? 'bg-green-500 border-green-500'
+                  : score >= 3 ? 'bg-amber-400 border-amber-400'
+                  : 'bg-red-400 border-red-400'
+                : 'bg-muted border-muted-foreground/20'
+            }`}
+          />
+        ))}
+      </div>
+      <span className="sr-only">{score != null ? `${score} out of ${total}` : 'Not scored'}</span>
+    </>
   )
 }
 
@@ -60,9 +64,9 @@ function HireScoreRing({ score }: { score: number }) {
   const dash = (score / 100) * circ
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3" aria-label={`Hire score: ${score} out of 100, ${label}`}>
       <div className="relative w-36 h-36">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
           <circle cx="60" cy="60" r={r} fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
           <circle
             cx="60" cy="60" r={r} fill="none"
@@ -71,7 +75,7 @@ function HireScoreRing({ score }: { score: number }) {
             strokeLinecap="round"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden="true">
           <span className="text-4xl font-bold tabular-nums">{score}</span>
           <span className="text-xs text-muted-foreground">/100</span>
         </div>
@@ -120,13 +124,22 @@ const uuidSchema = z.string().uuid()
 export default function ReportPage() {
   const pathname = usePathname()
   const rawId = pathname?.split('/').at(-1) ?? ''
-  const id = uuidSchema.safeParse(rawId).success ? rawId : ''
+  const id = uuidSchema.safeParse(rawId).success ? rawId : null
   const router = useRouter()
   const { data: detail, isLoading: detailLoading } = useSubmission(id)
   const { data: reportFromApi, isLoading: reportLoading, isError } = useReport(id)
   const generateReport = useGenerateReport(id)
   const deleteReport = useDeleteReport()
   const { toast } = useToast()
+
+  if (!id) return (
+    <div className="p-6">
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Invalid submission ID.</AlertDescription>
+      </Alert>
+    </div>
+  )
 
   const handleDelete = () => {
     if (!confirm('Delete this report? The interview answers and scores are kept — you can regenerate the report later.')) return

@@ -36,7 +36,11 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
     const { user, withRLS } = await getAuthenticatedUser()
     if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
 
-    const patch: Record<string, unknown> = {}
+    const patch: {
+      interviewerNotes?: string
+      score?: number | null
+      skipped?: boolean
+    } = {}
     if (validation.data.interviewer_notes !== undefined) patch.interviewerNotes = validation.data.interviewer_notes
     if (validation.data.score !== undefined) patch.score = validation.data.score
     if (validation.data.skipped !== undefined) patch.skipped = validation.data.skipped

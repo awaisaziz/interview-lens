@@ -103,8 +103,10 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
           )}
           {canSubmit && report && (
             <Button variant="ghost" size="sm" onClick={runGenerateReport} disabled={generateReport.isPending} className="text-muted-foreground text-xs">
-              {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3 h-3 mr-1" aria-hidden="true" />}
-              Re-generate
+              {generateReport.isPending
+                ? <><Loader2 className="w-3 h-3 animate-spin mr-1" aria-hidden="true" />Re-generating…</>
+                : <><RefreshCw className="w-3 h-3 mr-1" aria-hidden="true" />Re-generate</>
+              }
             </Button>
           )}
         </div>
@@ -180,11 +182,11 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
           <div className="lg:col-span-3 space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Filter:</span>
-              <Button size="sm" variant={tierFilter === 'all' ? 'default' : 'outline'} onClick={() => setTierFilter('all')}>All ({questions.length})</Button>
+              <Button size="sm" variant={tierFilter === 'all' ? 'default' : 'outline'} aria-pressed={tierFilter === 'all'} onClick={() => setTierFilter('all')}>All ({questions.length})</Button>
               {TIERS.map((t) => {
                 const n = questions.filter((q) => q.tier === t).length
                 return (
-                  <Button key={t} size="sm" variant={tierFilter === t ? 'default' : 'outline'} onClick={() => setTierFilter(t)}>
+                  <Button key={t} size="sm" variant={tierFilter === t ? 'default' : 'outline'} aria-pressed={tierFilter === t} onClick={() => setTierFilter(t)}>
                     {tierLabel[t]} ({n})
                   </Button>
                 )

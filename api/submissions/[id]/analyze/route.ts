@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
 import { createErrorResponse } from '@/lib/api-helpers'
 import { interviewLensSubmissions, interviewLensBriefs, interviewLensQuestions, interviewLensRoles } from '@/lib/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { generateBrief, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildSystemPrompt, buildUserPrompt } from '@/modules/interview-lens/lib/prompts'
-import type { BriefOutput } from '@/modules/interview-lens/lib/validation'
 import { registry } from '@/lib/openapi/registry'
 import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
 
@@ -56,6 +55,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     db.select({ generatedAt: interviewLensBriefs.generatedAt })
       .from(interviewLensBriefs)
       .where(and(eq(interviewLensBriefs.submissionId, id), eq(interviewLensBriefs.userId, user.id)))
+      .orderBy(desc(interviewLensBriefs.generatedAt))
       .limit(1)
   )
   if (recentBriefs.length > 0) {
@@ -66,7 +66,9 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   }
 
   const roles = await withRLS((db) =>
-    db.select().from(interviewLensRoles).where(eq(interviewLensRoles.id, submission.roleId)).limit(1)
+    db.select().from(interviewLensRoles)
+      .where(and(eq(interviewLensRoles.id, submission.roleId), eq(interviewLensRoles.userId, user.id)))
+      .limit(1)
   )
   const role = roles[0] ?? null
 
@@ -99,7 +101,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
           stackJson: output.stack,
           architectureMd: output.architecture_md,
           signalReportMd: output.signal_report_md,
-          rawModelOutput: raw as unknown as BriefOutput,
+          rawModelOutput: raw,
         })
         if (output.questions.length > 0) {
           await tx.insert(interviewLensQuestions).values(
@@ -123,7 +125,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof OpenAIError
-      ? err.message
+      ? 'Analysis failed: schema validation error'
       : err instanceof Error ? err.message : 'Analysis failed'
     console.error('Analyze error:', message)
     await withRLS((db) =>

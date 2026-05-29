@@ -170,7 +170,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
         .where(and(eq(interviewLensSubmissions.id, id), eq(interviewLensSubmissions.userId, user.id)))
     )
 
-    return NextResponse.json({ report: toSnakeCase(upserted[0]) })
+    return NextResponse.json({ report: toSnakeCase(upserted[0]) }, { status: 201 })
   } catch (err) {
     if (err instanceof OpenAIError) {
       return createErrorResponse(`AI error: ${err.message}`, 502)

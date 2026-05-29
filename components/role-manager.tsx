@@ -50,17 +50,17 @@ function RoleRow({ role }: { role: Role }) {
       <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className="h-8 text-sm" />
+            <Label htmlFor={`edit-title-${role.id}`} className="text-xs">Title</Label>
+            <Input id={`edit-title-${role.id}`} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className="h-8 text-sm" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Seniority</Label>
-            <Input value={seniority} onChange={(e) => setSeniority(e.target.value)} maxLength={100} className="h-8 text-sm" />
+            <Label htmlFor={`edit-seniority-${role.id}`} className="text-xs">Seniority</Label>
+            <Input id={`edit-seniority-${role.id}`} value={seniority} onChange={(e) => setSeniority(e.target.value)} maxLength={100} className="h-8 text-sm" />
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Focus notes</Label>
-          <Textarea value={focusNotes} onChange={(e) => setFocusNotes(e.target.value)} rows={3} maxLength={4000} className="text-sm" />
+          <Label htmlFor={`edit-focus-${role.id}`} className="text-xs">Focus notes</Label>
+          <Textarea id={`edit-focus-${role.id}`} value={focusNotes} onChange={(e) => setFocusNotes(e.target.value)} rows={3} maxLength={4000} className="text-sm" />
         </div>
         <div className="flex gap-2">
           <Button size="sm" onClick={handleSave} disabled={updateRole.isPending || !title.trim()}>

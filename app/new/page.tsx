@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 type Phase = 'idle' | 'ingesting' | 'analyzing'
 
 export default function NewSubmissionPage() {
-  const { data: roles = [], isLoading: rolesLoading } = useRoles()
+  const { data: roles = [], isLoading: rolesLoading, isError: rolesError } = useRoles()
   const create = useCreateSubmission()
   const analyze = useAnalyzeSubmission()
   const { toast } = useToast()
@@ -86,6 +86,11 @@ export default function NewSubmissionPage() {
 
       {rolesLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Loading roles…</div>
+      ) : rolesError ? (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Failed to load roles. Please refresh.</AlertDescription>
+        </Alert>
       ) : roles.length === 0 ? (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

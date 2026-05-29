@@ -96,6 +96,15 @@ export function useDeleteRole() {
     mutationFn: async (id: string): Promise<void> => {
       await jsonOrThrow(await fetch(`/api/modules/interview-lens/roles/${id}`, { method: 'DELETE' }))
     },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ROLES_KEY })
+      const previous = qc.getQueryData<Role[]>(ROLES_KEY)
+      qc.setQueryData<Role[]>(ROLES_KEY, (old = []) => old.filter((r) => r.id !== id))
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(ROLES_KEY, ctx.previous)
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ROLES_KEY })
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
@@ -105,11 +114,12 @@ export function useDeleteRole() {
 }
 
 // ─── Submissions ────────────────────────────────────────────────────────
-export function useSubmissions() {
+export function useSubmissions(params?: { limit?: number; offset?: number }) {
   return useQuery({
-    queryKey: SUBMISSIONS_KEY,
+    queryKey: [...SUBMISSIONS_KEY, params],
     queryFn: async (): Promise<Submission[]> => {
-      const j = await jsonOrThrow(await fetch('/api/modules/interview-lens/submissions'))
+      const qs = params ? `?${new URLSearchParams(Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]))).toString()}` : ''
+      const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions${qs}`))
       return j.submissions ?? []
     },
   })
@@ -147,6 +157,28 @@ export function useCreateSubmission() {
       }))
       return j
     },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: SUBMISSIONS_KEY })
+      const previous = qc.getQueryData<Submission[]>(SUBMISSIONS_KEY)
+      const optimistic: Submission = {
+        id: `temp-${Date.now()}`,
+        user_id: '',
+        role_id: input.role_id,
+        candidate_name: input.candidate_name,
+        source_type: input.source_type,
+        source_ref: input.source_ref ?? null,
+        pasted_content: input.pasted_content ?? null,
+        repo_digest: null,
+        error_message: null,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      }
+      qc.setQueryData<Submission[]>(SUBMISSIONS_KEY, (old = []) => [optimistic, ...old])
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(SUBMISSIONS_KEY, ctx.previous)
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
       qc.invalidateQueries({ queryKey: PIPELINE_KEY })
@@ -159,6 +191,20 @@ export function useAnalyzeSubmission() {
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${id}/analyze`, { method: 'POST' }))
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: submissionKey(id) })
+      const previous = qc.getQueryData<SubmissionDetail>(submissionKey(id))
+      if (previous) {
+        qc.setQueryData<SubmissionDetail>(submissionKey(id), {
+          ...previous,
+          submission: { ...previous.submission, status: 'analyzing' },
+        })
+      }
+      return { previous }
+    },
+    onError: (_e, id, ctx) => {
+      if (ctx?.previous) qc.setQueryData(submissionKey(id), ctx.previous)
     },
     onSettled: (_d, _e, id) => {
       qc.invalidateQueries({ queryKey: submissionKey(id) })
@@ -173,6 +219,15 @@ export function useDeleteSubmission() {
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${id}`, { method: 'DELETE' }))
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: SUBMISSIONS_KEY })
+      const previous = qc.getQueryData<Submission[]>(SUBMISSIONS_KEY)
+      qc.setQueryData<Submission[]>(SUBMISSIONS_KEY, (old = []) => old.filter((s) => s.id !== id))
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(SUBMISSIONS_KEY, ctx.previous)
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
@@ -248,6 +303,15 @@ export function useUpdateInterviewLensSettings() {
         body: JSON.stringify(patch),
       }))
     },
+    onMutate: async (patch) => {
+      await qc.cancelQueries({ queryKey: SETTINGS_KEY })
+      const previous = qc.getQueryData<Record<string, unknown>>(SETTINGS_KEY)
+      qc.setQueryData<Record<string, unknown>>(SETTINGS_KEY, (old = {}) => ({ ...old, ...patch }))
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(SETTINGS_KEY, ctx.previous)
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: SETTINGS_KEY }),
   })
 }
@@ -259,6 +323,12 @@ export function useGenerateReport(submissionId: string) {
     mutationFn: async (): Promise<Report> => {
       const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`, { method: 'POST' }))
       return j.report
+    },
+    onError: () => {
+      qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
+      qc.invalidateQueries({ queryKey: ['interview-lens', 'report', submissionId] })
+      qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
+      qc.invalidateQueries({ queryKey: REPORTS_KEY })
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
@@ -275,6 +345,16 @@ export function useDeleteReport() {
   return useMutation({
     mutationFn: async (submissionId: string): Promise<void> => {
       await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`, { method: 'DELETE' }))
+    },
+    onMutate: async (submissionId) => {
+      await qc.cancelQueries({ queryKey: ['interview-lens', 'report', submissionId] })
+      await qc.cancelQueries({ queryKey: REPORTS_KEY })
+      const previousReport = qc.getQueryData<Report | null>(['interview-lens', 'report', submissionId])
+      qc.setQueryData(['interview-lens', 'report', submissionId], null)
+      return { previousReport }
+    },
+    onError: (_e, submissionId, ctx) => {
+      if (ctx?.previousReport !== undefined) qc.setQueryData(['interview-lens', 'report', submissionId], ctx.previousReport)
     },
     onSettled: (_d, _e, submissionId) => {
       qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
@@ -298,11 +378,15 @@ export function useReport(submissionId: string | null) {
   })
 }
 
-export function useReports(roleId?: string) {
+export function useReports(roleId?: string, params?: { limit?: number; offset?: number }) {
   return useQuery({
-    queryKey: reportsKey(roleId),
+    queryKey: [...reportsKey(roleId), params],
     queryFn: async (): Promise<ReportListItem[]> => {
-      const qs = roleId ? `?${new URLSearchParams({ role_id: roleId }).toString()}` : ''
+      const search = new URLSearchParams()
+      if (roleId) search.set('role_id', roleId)
+      if (params?.limit !== undefined) search.set('limit', String(params.limit))
+      if (params?.offset !== undefined) search.set('offset', String(params.offset))
+      const qs = search.toString() ? `?${search.toString()}` : ''
       const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/reports${qs}`))
       return j.reports ?? []
     },

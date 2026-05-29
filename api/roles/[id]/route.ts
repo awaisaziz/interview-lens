@@ -50,7 +50,11 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
     const { user, withRLS } = await getAuthenticatedUser()
     if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
 
-    const patch: Record<string, unknown> = {}
+    const patch: {
+      title?: string
+      seniority?: string | null
+      focusNotes?: string | null
+    } = {}
     if (validation.data.title !== undefined) patch.title = validation.data.title
     if (validation.data.seniority !== undefined) patch.seniority = validation.data.seniority
     if (validation.data.focus_notes !== undefined) patch.focusNotes = validation.data.focus_notes

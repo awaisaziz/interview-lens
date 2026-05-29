@@ -22,8 +22,9 @@ const statusColor: Record<string, string> = {
 
 export default function InterviewLensListPage() {
   const { data: submissions = [], isLoading, isError } = useSubmissions()
-  const { data: roles = [] } = useRoles()
+  const { data: roles = [], isError: rolesError } = useRoles()
   const deleteSubmission = useDeleteSubmission()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
   const [rolesOpen, setRolesOpen] = useState(false)
@@ -70,7 +71,7 @@ export default function InterviewLensListPage() {
       <main className="flex-1 p-6 space-y-6">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-3xl font-medium flex items-center gap-2"><Microscope className="w-7 h-7 text-blue-600" />Interview Lens</h1>
+            <h1 className="text-3xl font-medium flex items-center gap-2"><Microscope className="w-7 h-7 text-blue-600" aria-hidden="true" />Interview Lens</h1>
             <p className="text-sm text-muted-foreground mt-1">Submit a candidate's take-home, generate a structured brief, score answers live.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -97,7 +98,12 @@ export default function InterviewLensListPage() {
           </SheetContent>
         </Sheet>
 
-        {roles.length === 0 && (
+        {rolesError ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Failed to load roles. Please refresh the page.</AlertDescription>
+          </Alert>
+        ) : roles.length === 0 && (
           <Card className="border-amber-300 dark:border-amber-800">
             <CardContent className="py-6 text-sm">
               You haven't set up any roles yet. Click <strong>Manage Roles</strong> above to add at least one role (with focus notes) before you can submit candidates.
@@ -139,9 +145,10 @@ export default function InterviewLensListPage() {
                           {role?.title ?? '(deleted role)'} · {s.source_type === 'github_url' ? 'GitHub' : 'Pasted'} · {new Date(s.created_at).toLocaleString()}
                         </p>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-red-600" disabled={deleteSubmission.isPending} aria-label="Delete submission" onClick={() => {
+                      <Button variant="ghost" size="sm" className="text-red-600" disabled={deletingId === s.id} aria-label="Delete submission" onClick={() => {
                         if (confirm(`Delete submission for ${s.candidate_name}?`)) {
-                          deleteSubmission.mutate(s.id, { onSuccess: () => toast({ title: 'Submission deleted' }), onError: (e) => toast({ variant: 'destructive', title: 'Delete failed', description: e.message }) })
+                          setDeletingId(s.id)
+                          deleteSubmission.mutate(s.id, { onSuccess: () => toast({ title: 'Submission deleted' }), onError: (e) => toast({ variant: 'destructive', title: 'Delete failed', description: e.message }), onSettled: () => setDeletingId(null) })
                         }
                       }}>
                         <Trash2 className="w-4 h-4" />

@@ -99,9 +99,9 @@ CREATE TABLE IF NOT EXISTS interview_lens_questions (
   interviewer_notes TEXT NOT NULL DEFAULT '',
   score INTEGER CHECK (score IS NULL OR (score BETWEEN 1 AND 5)),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  skipped BOOLEAN NOT NULL DEFAULT FALSE
 );
-ALTER TABLE interview_lens_questions ADD COLUMN IF NOT EXISTS skipped BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS idx_il_questions_user_submission ON interview_lens_questions(user_id, submission_id, sort_order);
 ALTER TABLE interview_lens_questions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS il_questions_rls_select ON interview_lens_questions;
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS interview_lens_reports (
   recommendation_md TEXT NOT NULL,
   hire_score     INTEGER NOT NULL,
   generated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (submission_id)
+  UNIQUE (submission_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_il_reports_user ON interview_lens_reports(user_id, generated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_il_reports_submission ON interview_lens_reports(submission_id);
@@ -143,3 +143,24 @@ CREATE POLICY il_reports_rls_update ON interview_lens_reports FOR UPDATE
 DROP POLICY IF EXISTS il_reports_rls_delete ON interview_lens_reports;
 CREATE POLICY il_reports_rls_delete ON interview_lens_reports FOR DELETE
   USING (user_id = current_setting('app.current_user_id', true));
+
+-- Foreign key constraints to Better Auth user table
+ALTER TABLE interview_lens_roles
+  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_roles_user
+  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+
+ALTER TABLE interview_lens_submissions
+  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_submissions_user
+  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+
+ALTER TABLE interview_lens_briefs
+  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_briefs_user
+  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+
+ALTER TABLE interview_lens_questions
+  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_questions_user
+  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+
+ALTER TABLE interview_lens_reports
+  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_reports_user
+  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;

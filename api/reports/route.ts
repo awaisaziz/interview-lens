@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(interviewLensReports.userId, user.id),
+          eq(interviewLensSubmissions.userId, user.id),
+          eq(interviewLensRoles.userId, user.id),
           roleId ? eq(interviewLensSubmissions.roleId, roleId) : undefined,
         )
       )

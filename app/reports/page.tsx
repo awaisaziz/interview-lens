@@ -23,6 +23,7 @@ export default function ReportsListPage() {
   const { data: reports = [], isLoading, isError } = useReports(selectedRoleId)
   const deleteReport = useDeleteReport()
   const { toast } = useToast()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const roleCounts = reports.reduce<Record<string, number>>((acc, r) => {
     acc[r.role_id] = (acc[r.role_id] ?? 0) + 1
@@ -63,7 +64,7 @@ export default function ReportsListPage() {
             <ArrowLeft className="w-4 h-4 mr-1" />Dashboard
           </Button>
           <h1 className="text-2xl font-medium flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-600" />Interview Reports
+            <FileText className="w-6 h-6 text-blue-600" aria-hidden="true" />Interview Reports
           </h1>
         </div>
 
@@ -131,13 +132,15 @@ export default function ReportsListPage() {
                     size="sm"
                     className="shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                     aria-label="Delete report"
-                    disabled={deleteReport.isPending}
+                    disabled={deletingId === r.submission_id}
                     onClick={(e) => {
                       e.stopPropagation()
                       if (!confirm(`Delete the report for ${r.candidate_name}? The interview answers and scores are kept.`)) return
+                      setDeletingId(r.submission_id)
                       deleteReport.mutate(r.submission_id, {
                         onSuccess: () => toast({ title: 'Report deleted' }),
                         onError: (err) => toast({ variant: 'destructive', title: 'Delete failed', description: err.message }),
+                        onSettled: () => setDeletingId(null),
                       })
                     }}
                   >

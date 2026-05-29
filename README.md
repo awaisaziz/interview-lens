@@ -4,6 +4,10 @@ Turn a candidate's take-home project into a structured interview brief in second
 
 > Built for the [ARI](https://github.com/) personal OS — drop the folder into `modules-custom/interview-lens/` of an ARI install, restart, and the schema, sidebar entry, dashboard widget, and settings panel wire themselves up.
 
+## Demo
+
+📺 **[Watch the demo on YouTube](<!-- ADD_YOUTUBE_LINK_HERE -->)**
+
 ## What it does
 
 - **Ingest** a candidate submission as pasted code/README (primary) or a public GitHub URL (secondary, best-effort).

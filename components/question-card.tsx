@@ -77,7 +77,7 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
         </div>
         {question.anchor_file && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-            <FileCode2 className="w-3 h-3" />
+            <FileCode2 className="w-3 h-3" aria-hidden="true" />
             <code className="font-mono">{question.anchor_file}</code>
           </div>
         )}
@@ -87,7 +87,7 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="w-full justify-between text-xs">
               What a strong answer sounds like
-              <ChevronDown className={`w-3 h-3 transition-transform ${showAnswer ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 transition-transform ${showAnswer ? 'rotate-180' : ''}`} aria-hidden="true" />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 px-1">
@@ -96,8 +96,8 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
         </Collapsible>
 
         <div className="space-y-2 pt-2 border-t">
-          <label className="text-xs font-medium text-muted-foreground">Candidate's answer / notes <span className="font-normal">(saves automatically)</span></label>
-          <Textarea value={notes} onChange={(e) => onNotesChange(e.target.value)} placeholder="What did the candidate say? Key points, examples they mentioned…" rows={3} className="text-sm" disabled={skipped} />
+          <label htmlFor={`notes-${question.id}`} className="text-xs font-medium text-muted-foreground">Candidate's answer / notes <span className="font-normal">(saves automatically)</span></label>
+          <Textarea id={`notes-${question.id}`} value={notes} onChange={(e) => onNotesChange(e.target.value)} placeholder="What did the candidate say? Key points, examples they mentioned…" rows={3} className="text-sm" disabled={skipped} />
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Your rating</span>
             <span className="text-xs text-muted-foreground/60">— how did you feel about this answer?</span>
@@ -109,7 +109,8 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
                 variant={score === n ? 'default' : 'outline'}
                 className="h-7 w-7 p-0"
                 onClick={() => onScoreChange(score === n ? null : n)}
-                disabled={skipped}
+                disabled={update.isPending || skipped}
+                aria-label={`Rate ${n} out of 5`}
               >
                 {n}
               </Button>

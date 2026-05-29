@@ -54,7 +54,7 @@ export function InterviewLensPipelineWidget() {
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Interview Lens pipeline</CardTitle>
-        <Microscope className="h-4 w-4 text-blue-600" />
+        <Microscope className="h-4 w-4 text-blue-600" aria-hidden="true" />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-medium">{totalSubmissions}</div>

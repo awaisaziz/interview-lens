@@ -17,6 +17,15 @@ export default function SubmissionDetailPage() {
   const id = uuidSchema.safeParse(rawId).success ? rawId : null
   const { data, isLoading, isError, error } = useSubmission(id)
 
+  if (!id) return (
+    <div className="p-6">
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>Invalid submission ID.</AlertDescription>
+      </Alert>
+    </div>
+  )
+
   return (
     <div className="p-6 space-y-4">
       <Button variant="ghost" size="sm" onClick={() => router.push('/interview-lens')}>
