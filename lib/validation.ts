@@ -15,9 +15,9 @@ export const createSubmissionSchema = z.object({
   role_id: uuid,
   candidate_name: z.string().min(1).max(200),
   source_type: z.enum(['github_url', 'pasted_code']),
-  source_ref: z.string().url()
+  source_ref: z.string().url().max(500)
     .refine((u) => /^https?:\/\//i.test(u), { message: 'URL must use http or https' })
-    .max(500).nullable().optional(),
+    .nullable().optional(),
   pasted_content: z.string().max(200_000).nullable().optional(),
 }).refine(
   (v) => (v.source_type === 'github_url' ? !!v.source_ref : !!v.pasted_content),
