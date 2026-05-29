@@ -6,7 +6,7 @@ Turn a candidate's take-home project into a structured interview brief in second
 
 ## Demo
 
-📺 **[Watch the demo on YouTube](<!-- ADD_YOUTUBE_LINK_HERE -->)**
+📺 **[Watch the demo on YouTube](https://youtu.be/WTiUOTfy5jc)**
 
 ## What it does
 
