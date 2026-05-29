@@ -25,6 +25,49 @@ export function buildSystemPrompt(): string {
   ].join('\n')
 }
 
+export function buildReportSystemPrompt(): string {
+  return [
+    'You are a senior hiring manager evaluating a technical interview. You have been given a candidate\'s project brief and the interviewer\'s per-question notes and scores.',
+    '',
+    'Produce a structured JSON hiring report with three fields:',
+    '- report_md: Full evaluation in Markdown. Include sections: ## Overall Assessment, ## Strengths, ## Areas of Concern, ## Interview Highlights (notable answers, good or bad). Be specific — reference actual questions and notes.',
+    '- recommendation_md: A concise 1–3 paragraph hire/no-hire recommendation paragraph with your reasoning. Be direct and honest.',
+    '- hire_score: An integer 0–100 representing likelihood to hire. 0 = strong no-hire, 100 = strong hire. Base this on the scores given, quality of notes, and the role requirements.',
+    '',
+    'Skipped questions should be acknowledged but do not penalise the candidate — they were skipped by the interviewer.',
+    'Do NOT invent information not present in the notes. If notes are sparse, say so and adjust hire_score accordingly.',
+    'Output strictly matches the provided JSON schema. No prose outside the JSON.',
+  ].join('\n')
+}
+
+export function buildReportUserPrompt(args: {
+  candidateName: string
+  roleTitle: string
+  roleSeniority: string | null
+  briefSummary: string
+  questions: Array<{ tier: string; prompt: string; notes: string; score: number | null; skipped: boolean }>
+}): string {
+  const lines = [
+    `Candidate: ${args.candidateName}`,
+    `Role: ${args.roleTitle}${args.roleSeniority ? ` (${args.roleSeniority})` : ''}`,
+    '',
+    '## Project Summary',
+    args.briefSummary,
+    '',
+    '## Interview Q&A',
+  ]
+  args.questions.forEach((q, i) => {
+    lines.push(`### Q${i + 1} [${q.tier}]${q.skipped ? ' — SKIPPED' : ''}`)
+    lines.push(`**Question:** ${q.prompt}`)
+    if (!q.skipped) {
+      lines.push(`**Score:** ${q.score !== null ? `${q.score}/5` : 'not scored'}`)
+      lines.push(`**Interviewer notes:** ${q.notes.trim() || '(none)'}`)
+    }
+    lines.push('')
+  })
+  return lines.join('\n')
+}
+
 export function buildUserPrompt(args: { focusNotes: string | null; candidateName: string; digest: string }): string {
   const focus = (args.focusNotes ?? '').trim() || '(none provided)'
   return [

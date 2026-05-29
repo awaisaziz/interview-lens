@@ -25,6 +25,7 @@ export const createSubmissionSchema = z.object({
 export const updateQuestionSchema = z.object({
   interviewer_notes: z.string().max(8000).optional(),
   score: z.number().int().min(1).max(5).nullable().optional(),
+  skipped: z.boolean().optional(),
 }).openapi('InterviewLensUpdateQuestion')
 
 export const settingsSchema = z.object({
@@ -57,6 +58,30 @@ export const briefOutputSchema = z.object({
 }).strict()
 
 export type BriefOutput = z.infer<typeof briefOutputSchema>
+
+// ─── Report output schema ────────────────────────────────────────────────
+export const reportOutputSchema = z.object({
+  report_md: z.string().min(1).max(12000),
+  recommendation_md: z.string().min(1).max(4000),
+  hire_score: z.number().int().min(0).max(100),
+}).strict()
+
+export type ReportOutput = z.infer<typeof reportOutputSchema>
+
+export const reportJsonSchema = {
+  name: 'interview_report',
+  strict: true,
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['report_md', 'recommendation_md', 'hire_score'],
+    properties: {
+      report_md: { type: 'string' },
+      recommendation_md: { type: 'string' },
+      hire_score: { type: 'integer' },
+    },
+  },
+} as const
 
 // JSON Schema mirror for OpenAI's response_format. Kept hand-rolled (not
 // auto-converted from Zod) so we have full control over `additionalProperties`

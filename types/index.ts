@@ -50,6 +50,27 @@ export interface Question {
   sort_order: number
   interviewer_notes: string
   score: number | null
+  skipped: boolean
+}
+
+export interface Report {
+  id: string
+  submission_id: string
+  user_id: string
+  report_md: string
+  recommendation_md: string
+  hire_score: number
+  generated_at: string
+}
+
+export interface ReportListItem {
+  id: string
+  submission_id: string
+  candidate_name: string
+  role_id: string
+  role_title: string
+  hire_score: number
+  generated_at: string
 }
 
 export interface SubmissionDetail {
@@ -57,6 +78,7 @@ export interface SubmissionDetail {
   brief: Brief | null
   questions: Question[]
   role: Role
+  report: Report | null
 }
 
 export interface PipelineRow {

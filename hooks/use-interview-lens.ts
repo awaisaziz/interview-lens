@@ -1,13 +1,15 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Role, Submission, SubmissionDetail, PipelineRow, Question } from '../types'
+import type { Role, Submission, SubmissionDetail, PipelineRow, Question, Report, ReportListItem } from '../types'
 
 const ROLES_KEY = ['interview-lens', 'roles']
 const SUBMISSIONS_KEY = ['interview-lens', 'submissions']
 const PIPELINE_KEY = ['interview-lens', 'pipeline']
 const SETTINGS_KEY = ['interview-lens', 'settings']
+const REPORTS_KEY = ['interview-lens', 'reports']
 const submissionKey = (id: string) => ['interview-lens', 'submission', id]
+const reportsKey = (roleId?: string) => roleId ? ['interview-lens', 'reports', roleId] : REPORTS_KEY
 
 async function jsonOrThrow(res: Response): Promise<any> {
   const text = await res.text()
@@ -155,7 +157,7 @@ export function useDeleteSubmission() {
 export function useUpdateQuestion(submissionId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (args: { id: string; interviewer_notes?: string; score?: number | null }): Promise<Question> => {
+    mutationFn: async (args: { id: string; interviewer_notes?: string; score?: number | null; skipped?: boolean }): Promise<Question> => {
       const { id, ...patch } = args
       const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/questions/${id}`, {
         method: 'PATCH',
@@ -170,7 +172,7 @@ export function useUpdateQuestion(submissionId: string) {
       if (previous) {
         qc.setQueryData<SubmissionDetail>(submissionKey(submissionId), {
           ...previous,
-          questions: previous.questions.map((q) => q.id === args.id ? { ...q, ...args, interviewer_notes: args.interviewer_notes ?? q.interviewer_notes, score: args.score === undefined ? q.score : args.score } : q),
+          questions: previous.questions.map((q) => q.id === args.id ? { ...q, ...args, interviewer_notes: args.interviewer_notes ?? q.interviewer_notes, score: args.score === undefined ? q.score : args.score, skipped: args.skipped === undefined ? q.skipped : args.skipped } : q),
         })
       }
       return { previous }
@@ -219,5 +221,47 @@ export function useUpdateInterviewLensSettings() {
       }))
     },
     onSettled: () => qc.invalidateQueries({ queryKey: SETTINGS_KEY }),
+  })
+}
+
+// ─── Reports ─────────────────────────────────────────────────────────────
+export function useGenerateReport(submissionId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (): Promise<Report> => {
+      const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`, { method: 'POST' }))
+      return j.report
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
+      qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
+      qc.invalidateQueries({ queryKey: PIPELINE_KEY })
+      qc.invalidateQueries({ queryKey: REPORTS_KEY })
+    },
+  })
+}
+
+export function useReport(submissionId: string | null) {
+  return useQuery({
+    queryKey: submissionId ? ['interview-lens', 'report', submissionId] : ['interview-lens', 'report', 'none'],
+    enabled: !!submissionId,
+    queryFn: async (): Promise<Report | null> => {
+      const res = await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`)
+      if (res.status === 404) return null
+      return (await jsonOrThrow(res)).report
+    },
+  })
+}
+
+export function useReports(roleId?: string) {
+  return useQuery({
+    queryKey: reportsKey(roleId),
+    queryFn: async (): Promise<ReportListItem[]> => {
+      const url = roleId
+        ? `/api/modules/interview-lens/reports?role_id=${roleId}`
+        : '/api/modules/interview-lens/reports'
+      const j = await jsonOrThrow(await fetch(url))
+      return j.reports ?? []
+    },
   })
 }

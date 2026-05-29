@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS interview_lens_questions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE interview_lens_questions ADD COLUMN IF NOT EXISTS skipped BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS idx_il_questions_user_submission ON interview_lens_questions(user_id, submission_id, sort_order);
 ALTER TABLE interview_lens_questions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS il_questions_rls_select ON interview_lens_questions;
@@ -114,4 +115,31 @@ CREATE POLICY il_questions_rls_update ON interview_lens_questions FOR UPDATE
   USING (user_id = current_setting('app.current_user_id', true));
 DROP POLICY IF EXISTS il_questions_rls_delete ON interview_lens_questions;
 CREATE POLICY il_questions_rls_delete ON interview_lens_questions FOR DELETE
+  USING (user_id = current_setting('app.current_user_id', true));
+
+-- ─── reports ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS interview_lens_reports (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        TEXT NOT NULL,
+  submission_id  UUID NOT NULL REFERENCES interview_lens_submissions(id) ON DELETE CASCADE,
+  report_md      TEXT NOT NULL,
+  recommendation_md TEXT NOT NULL,
+  hire_score     INTEGER NOT NULL,
+  generated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (submission_id)
+);
+CREATE INDEX IF NOT EXISTS idx_il_reports_user ON interview_lens_reports(user_id, generated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_il_reports_submission ON interview_lens_reports(submission_id);
+ALTER TABLE interview_lens_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS il_reports_rls_select ON interview_lens_reports;
+CREATE POLICY il_reports_rls_select ON interview_lens_reports FOR SELECT
+  USING (user_id = current_setting('app.current_user_id', true));
+DROP POLICY IF EXISTS il_reports_rls_insert ON interview_lens_reports;
+CREATE POLICY il_reports_rls_insert ON interview_lens_reports FOR INSERT
+  WITH CHECK (user_id = current_setting('app.current_user_id', true));
+DROP POLICY IF EXISTS il_reports_rls_update ON interview_lens_reports;
+CREATE POLICY il_reports_rls_update ON interview_lens_reports FOR UPDATE
+  USING (user_id = current_setting('app.current_user_id', true));
+DROP POLICY IF EXISTS il_reports_rls_delete ON interview_lens_reports;
+CREATE POLICY il_reports_rls_delete ON interview_lens_reports FOR DELETE
   USING (user_id = current_setting('app.current_user_id', true));

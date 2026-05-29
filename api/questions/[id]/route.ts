@@ -20,6 +20,7 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
     const patch: Record<string, unknown> = {}
     if (validation.data.interviewer_notes !== undefined) patch.interviewerNotes = validation.data.interviewer_notes
     if (validation.data.score !== undefined) patch.score = validation.data.score
+    if (validation.data.skipped !== undefined) patch.skipped = validation.data.skipped
     if (Object.keys(patch).length === 0) return createErrorResponse('No fields to update', 400)
 
     const rows = await withRLS((db) =>

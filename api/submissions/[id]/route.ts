@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthenticatedUser } from '@/lib/auth-helpers'
 import { createErrorResponse, toSnakeCase } from '@/lib/api-helpers'
-import { interviewLensSubmissions, interviewLensBriefs, interviewLensQuestions, interviewLensRoles } from '@/lib/db/schema'
+import { interviewLensSubmissions, interviewLensBriefs, interviewLensQuestions, interviewLensRoles, interviewLensReports } from '@/lib/db/schema'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -22,7 +22,7 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
     if (subs.length === 0) return createErrorResponse('Not found', 404)
     const submission = subs[0]
 
-    const [role, briefs, questions] = await Promise.all([
+    const [role, briefs, questions, reports] = await Promise.all([
       withRLS((db) =>
         db.select().from(interviewLensRoles).where(eq(interviewLensRoles.id, submission.roleId)).limit(1)
       ),
@@ -42,6 +42,11 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
       withRLS((db) =>
         db.select().from(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id)).orderBy(asc(interviewLensQuestions.sortOrder))
       ),
+      withRLS((db) =>
+        db.select().from(interviewLensReports)
+          .where(and(eq(interviewLensReports.submissionId, id), eq(interviewLensReports.userId, user.id)))
+          .limit(1)
+      ),
     ])
 
     return NextResponse.json({
@@ -49,6 +54,7 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
       role: role[0] ? toSnakeCase(role[0]) : null,
       brief: briefs[0] ? toSnakeCase(briefs[0]) : null,
       questions: toSnakeCase(questions),
+      report: reports[0] ? toSnakeCase(reports[0]) : null,
     })
   } catch (err) {
     console.error('GET submission detail error:', err instanceof Error ? err.message : err)

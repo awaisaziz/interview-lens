@@ -1,7 +1,7 @@
 // Minimal OpenAI client — uses raw fetch so we don't add a new npm dep.
 // Calls Chat Completions with Structured Outputs (json_schema, strict:true).
 
-import { briefJsonSchema, briefOutputSchema, type BriefOutput } from './validation'
+import { briefJsonSchema, briefOutputSchema, type BriefOutput, reportJsonSchema, reportOutputSchema, type ReportOutput } from './validation'
 
 const DEFAULT_MODEL = 'gpt-4o-2024-08-06'
 
@@ -77,4 +77,51 @@ export async function generateBrief(args: {
   }
 
   return { output: validation.data, raw: parsed }
+}
+
+export async function generateReport(args: {
+  systemPrompt: string
+  userPrompt: string
+  model?: string
+}): Promise<ReportOutput> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new OpenAIError('OPENAI_API_KEY is not set in the server environment (.env.local).')
+  }
+
+  const body = {
+    model: args.model ?? DEFAULT_MODEL,
+    messages: [
+      { role: 'system', content: args.systemPrompt },
+      { role: 'user', content: args.userPrompt },
+    ],
+    temperature: 0.3,
+    response_format: { type: 'json_schema', json_schema: reportJsonSchema },
+  }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  })
+
+  const text = await res.text()
+  if (!res.ok) throw new OpenAIError(`OpenAI ${res.status}: ${text.slice(0, 500)}`, res.status)
+
+  let payload: any
+  try { payload = JSON.parse(text) } catch { throw new OpenAIError('OpenAI returned non-JSON response.') }
+
+  const choice = payload.choices?.[0]
+  if (choice?.message?.refusal) throw new OpenAIError(`Model refused: ${choice.message.refusal}`)
+  const content = choice?.message?.content
+  if (typeof content !== 'string') throw new OpenAIError('OpenAI response missing message.content.')
+
+  let parsed: unknown
+  try { parsed = JSON.parse(content) } catch { throw new OpenAIError('Model output was not valid JSON.') }
+
+  const validation = reportOutputSchema.safeParse(parsed)
+  if (!validation.success) {
+    throw new OpenAIError(`Report output failed validation: ${validation.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`)
+  }
+  return validation.data
 }

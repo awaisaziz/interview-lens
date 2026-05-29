@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Loader2, Sparkles, RefreshCw, AlertCircle, ShieldAlert } from 'lucide-react'
+import { Loader2, Sparkles, RefreshCw, AlertCircle, ShieldAlert, ClipboardList, FileText } from 'lucide-react'
 import type { SubmissionDetail as DetailType, Question, Tier } from '../types'
 import { SafeMarkdown } from './safe-markdown'
 import { QuestionCard } from './question-card'
-import { useAnalyzeSubmission } from '../hooks/use-interview-lens'
+import { useAnalyzeSubmission, useGenerateReport } from '../hooks/use-interview-lens'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 
 const TIERS: Tier[] = ['easy', 'medium', 'hard']
 const tierLabel: Record<Tier, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }
@@ -26,9 +27,11 @@ function statusBadge(status: string) {
 }
 
 export function SubmissionDetailView({ detail }: { detail: DetailType }) {
-  const { submission, brief, questions, role } = detail
+  const { submission, brief, questions, role, report } = detail
   const analyze = useAnalyzeSubmission()
+  const generateReport = useGenerateReport(submission.id)
   const { toast } = useToast()
+  const router = useRouter()
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
 
   const visibleQuestions = questions.filter((q) => tierFilter === 'all' || q.tier === tierFilter)
@@ -44,6 +47,17 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
     })
   }
 
+  const runGenerateReport = () => {
+    generateReport.mutate(undefined, {
+      onSuccess: (r) => {
+        router.push(`/interview-lens/reports/${submission.id}`)
+      },
+      onError: (err) => toast({ variant: 'destructive', title: 'Report generation failed', description: err.message }),
+    })
+  }
+
+  const canSubmit = (submission.status === 'ready' || submission.status === 'interviewed') && !!brief
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -57,9 +71,9 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
             {submission.source_ref && <> · <a href={submission.source_ref} target="_blank" rel="noopener noreferrer" className="underline">{submission.source_ref}</a></>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {submission.status !== 'analyzing' && submission.status !== 'failed' && (
-            <Button onClick={runAnalyze} disabled={analyze.isPending}>
+            <Button variant="outline" onClick={runAnalyze} disabled={analyze.isPending}>
               {analyze.isPending ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing…</>
               ) : (
@@ -68,8 +82,29 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
             </Button>
           )}
           {submission.status === 'failed' && (
-            <Button onClick={runAnalyze} disabled={analyze.isPending} variant="default">
+            <Button onClick={runAnalyze} disabled={analyze.isPending} variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />Retry
+            </Button>
+          )}
+          {canSubmit && (
+            report ? (
+              <Button onClick={() => router.push(`/interview-lens/reports/${submission.id}`)}>
+                <FileText className="w-4 h-4 mr-2" />View Report
+              </Button>
+            ) : (
+              <Button onClick={runGenerateReport} disabled={generateReport.isPending}>
+                {generateReport.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating report…</>
+                ) : (
+                  <><ClipboardList className="w-4 h-4 mr-2" />Submit Interview &amp; Generate Report</>
+                )}
+              </Button>
+            )
+          )}
+          {canSubmit && report && (
+            <Button variant="ghost" size="sm" onClick={runGenerateReport} disabled={generateReport.isPending} className="text-muted-foreground text-xs">
+              {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+              Re-generate
             </Button>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { pgTable, index, pgPolicy, uuid, text, timestamp, jsonb, integer } from "drizzle-orm/pg-core"
+import { pgTable, index, pgPolicy, uuid, text, timestamp, jsonb, integer, boolean } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 const rlsUserMatch = sql`(user_id = current_setting('app.current_user_id', true))`
@@ -70,6 +70,7 @@ export const interviewLensQuestions = pgTable("interview_lens_questions", {
   sortOrder: integer("sort_order").notNull().default(0),
   interviewerNotes: text("interviewer_notes").notNull().default(''),
   score: integer(),
+  skipped: boolean().notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
@@ -78,4 +79,21 @@ export const interviewLensQuestions = pgTable("interview_lens_questions", {
   pgPolicy("il_questions_rls_insert", { as: "permissive", for: "insert", to: ["public"], withCheck: rlsUserMatch }),
   pgPolicy("il_questions_rls_update", { as: "permissive", for: "update", to: ["public"], using: rlsUserMatch }),
   pgPolicy("il_questions_rls_delete", { as: "permissive", for: "delete", to: ["public"], using: rlsUserMatch }),
+])
+
+export const interviewLensReports = pgTable("interview_lens_reports", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  userId: text("user_id").notNull(),
+  submissionId: uuid("submission_id").notNull().unique(),
+  reportMd: text("report_md").notNull(),
+  recommendationMd: text("recommendation_md").notNull(),
+  hireScore: integer("hire_score").notNull(),
+  generatedAt: timestamp("generated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+}, (table) => [
+  index("idx_il_reports_user").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.generatedAt.desc().nullsFirst().op("timestamptz_ops")),
+  index("idx_il_reports_submission").using("btree", table.submissionId.asc().nullsLast().op("uuid_ops")),
+  pgPolicy("il_reports_rls_select", { as: "permissive", for: "select", to: ["public"], using: rlsUserMatch }),
+  pgPolicy("il_reports_rls_insert", { as: "permissive", for: "insert", to: ["public"], withCheck: rlsUserMatch }),
+  pgPolicy("il_reports_rls_update", { as: "permissive", for: "update", to: ["public"], using: rlsUserMatch }),
+  pgPolicy("il_reports_rls_delete", { as: "permissive", for: "delete", to: ["public"], using: rlsUserMatch }),
 ])
