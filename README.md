@@ -43,7 +43,7 @@ claude /ari-audit-module interview-lens
 Or manually verify that `module.json` is present and the database schema looks correct — but the audit command does this automatically.
 
 ### 3. Install dependencies and activate
-
+Make sure you are in the `ARI` folder
 ```bash
 pnpm install
 node scripts/generate-module-registry.js
