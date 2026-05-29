@@ -145,22 +145,32 @@ CREATE POLICY il_reports_rls_delete ON interview_lens_reports FOR DELETE
   USING (user_id = current_setting('app.current_user_id', true));
 
 -- Foreign key constraints to Better Auth user table
-ALTER TABLE interview_lens_roles
-  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_roles_user
-  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_interview_lens_roles_user' AND conrelid = 'interview_lens_roles'::regclass) THEN
+    ALTER TABLE interview_lens_roles ADD CONSTRAINT fk_interview_lens_roles_user FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+  END IF;
+END $$;
 
-ALTER TABLE interview_lens_submissions
-  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_submissions_user
-  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_interview_lens_submissions_user' AND conrelid = 'interview_lens_submissions'::regclass) THEN
+    ALTER TABLE interview_lens_submissions ADD CONSTRAINT fk_interview_lens_submissions_user FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+  END IF;
+END $$;
 
-ALTER TABLE interview_lens_briefs
-  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_briefs_user
-  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_interview_lens_briefs_user' AND conrelid = 'interview_lens_briefs'::regclass) THEN
+    ALTER TABLE interview_lens_briefs ADD CONSTRAINT fk_interview_lens_briefs_user FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+  END IF;
+END $$;
 
-ALTER TABLE interview_lens_questions
-  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_questions_user
-  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_interview_lens_questions_user' AND conrelid = 'interview_lens_questions'::regclass) THEN
+    ALTER TABLE interview_lens_questions ADD CONSTRAINT fk_interview_lens_questions_user FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+  END IF;
+END $$;
 
-ALTER TABLE interview_lens_reports
-  ADD CONSTRAINT IF NOT EXISTS fk_interview_lens_reports_user
-  FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_interview_lens_reports_user' AND conrelid = 'interview_lens_reports'::regclass) THEN
+    ALTER TABLE interview_lens_reports ADD CONSTRAINT fk_interview_lens_reports_user FOREIGN KEY (user_id) REFERENCES public."user"(id) ON DELETE CASCADE NOT VALID;
+  END IF;
+END $$;
