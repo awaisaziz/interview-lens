@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
 
     const roleId = request.nextUrl.searchParams.get('role_id')
     if (roleId && !uuidParam.safeParse(roleId).success) return createErrorResponse('Invalid role_id', 400)
+    const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit')) || 100, 1), 500)
+    const offset = Math.max(Number(request.nextUrl.searchParams.get('offset')) || 0, 0)
 
     const rows = await withRLS((db) =>
       db.select({
@@ -51,6 +53,8 @@ export async function GET(request: NextRequest) {
         )
       )
       .orderBy(desc(interviewLensReports.generatedAt))
+      .limit(limit)
+      .offset(offset)
     )
 
     const reports = rows.map((r) => ({

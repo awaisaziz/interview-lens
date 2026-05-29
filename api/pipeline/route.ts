@@ -40,6 +40,7 @@ export async function GET() {
         db.select().from(interviewLensSubmissions)
           .where(inArray(interviewLensSubmissions.roleId, roleIds))
           .orderBy(desc(interviewLensSubmissions.createdAt))
+          .limit(500)
       ),
       withRLS((db) =>
         db.select({

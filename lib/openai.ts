@@ -44,7 +44,9 @@ export async function generateBrief(args: {
 
   const text = await res.text()
   if (!res.ok) {
-    throw new OpenAIError(`OpenAI ${res.status}: ${text.slice(0, 500)}`, res.status)
+    // Log the full upstream body server-side only; never surface it to the client.
+    console.error(`OpenAI brief error ${res.status}:`, text.slice(0, 500))
+    throw new OpenAIError(`OpenAI request failed (${res.status}).`, res.status)
   }
 
   let payload: any
@@ -106,7 +108,10 @@ export async function generateReport(args: {
   })
 
   const text = await res.text()
-  if (!res.ok) throw new OpenAIError(`OpenAI ${res.status}: ${text.slice(0, 500)}`, res.status)
+  if (!res.ok) {
+    console.error(`OpenAI report error ${res.status}:`, text.slice(0, 500))
+    throw new OpenAIError(`OpenAI request failed (${res.status}).`, res.status)
+  }
 
   let payload: any
   try { payload = JSON.parse(text) } catch { throw new OpenAIError('OpenAI returned non-JSON response.') }

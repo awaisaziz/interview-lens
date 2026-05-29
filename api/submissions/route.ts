@@ -39,12 +39,14 @@ registry.registerPath({
   },
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { user, withRLS } = await getAuthenticatedUser()
     if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
+    const limit = Math.min(Math.max(Number(request.nextUrl.searchParams.get('limit')) || 100, 1), 500)
+    const offset = Math.max(Number(request.nextUrl.searchParams.get('offset')) || 0, 0)
     const rows = await withRLS((db) =>
-      db.select().from(interviewLensSubmissions).where(eq(interviewLensSubmissions.userId, user.id)).orderBy(desc(interviewLensSubmissions.createdAt))
+      db.select().from(interviewLensSubmissions).where(eq(interviewLensSubmissions.userId, user.id)).orderBy(desc(interviewLensSubmissions.createdAt)).limit(limit).offset(offset)
     )
     return NextResponse.json({ submissions: toSnakeCase(rows) })
   } catch (err) {
