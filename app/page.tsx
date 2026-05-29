@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ export default function InterviewLensListPage() {
   const { data: roles = [] } = useRoles()
   const deleteSubmission = useDeleteSubmission()
   const { toast } = useToast()
+  const router = useRouter()
   const [rolesOpen, setRolesOpen] = useState(false)
   const [selectedRoleId, setSelectedRoleId] = useState<string | undefined>(undefined)
 
@@ -72,13 +74,13 @@ export default function InterviewLensListPage() {
             <p className="text-sm text-muted-foreground mt-1">Submit a candidate's take-home, generate a structured brief, score answers live.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => window.location.href = '/interview-lens/reports'}>
+            <Button variant="outline" onClick={() => router.push('/interview-lens/reports')}>
               <FileText className="w-4 h-4 mr-2" />View All Reports
             </Button>
             <Button variant="outline" onClick={() => setRolesOpen(true)}>
               <Settings className="w-4 h-4 mr-2" />Manage Roles
             </Button>
-            <Button onClick={() => window.location.href = '/interview-lens/new'} disabled={roles.length === 0}>
+            <Button onClick={() => router.push('/interview-lens/new')} disabled={roles.length === 0}>
               <Plus className="w-4 h-4 mr-2" />New submission
             </Button>
           </div>
@@ -128,7 +130,7 @@ export default function InterviewLensListPage() {
                   const role = roleById.get(s.role_id)
                   return (
                     <div key={s.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/40 transition-colors">
-                      <div className="flex-1 cursor-pointer" onClick={() => window.location.href = `/interview-lens/${s.id}`}>
+                      <div className="flex-1 cursor-pointer" onClick={() => router.push(`/interview-lens/${s.id}`)}>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{s.candidate_name}</span>
                           <Badge variant="secondary" className={statusColor[s.status] ?? ''}>{s.status}</Badge>

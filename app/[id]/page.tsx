@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Loader2, ChevronLeft, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -12,13 +12,14 @@ const uuidSchema = z.string().uuid()
 
 export default function SubmissionDetailPage() {
   const pathname = usePathname()
+  const router = useRouter()
   const rawId = pathname?.split('/').at(-1) ?? ''
   const id = uuidSchema.safeParse(rawId).success ? rawId : null
   const { data, isLoading, isError, error } = useSubmission(id)
 
   return (
     <div className="p-6 space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => window.location.href = '/interview-lens'}>
+      <Button variant="ghost" size="sm" onClick={() => router.push('/interview-lens')}>
         <ChevronLeft className="w-4 h-4 mr-1" />All submissions
       </Button>
 

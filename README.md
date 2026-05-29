@@ -62,12 +62,28 @@ Then start ARI:
 .\ari.cmd start    # Windows
 ```
 
-### 4. Configure and use
+### 4. Enable the module in ARI
 
-1. Settings → Interview Lens → add at least one role (with focus notes — what your team cares about for this position).
-2. `/interview-lens/new` → submit a candidate.
-3. On the submission page, click **Generate brief**.
-4. Walk the brief and questions during the live interview, jot notes, score 1–5 per question.
+After restarting ARI, the module is installed but **disabled by default** — it will not appear in the sidebar yet.
+
+To enable it:
+
+1. Open ARI in your browser at `http://localhost:3000`
+2. Go to **Settings → Modules** (or navigate directly to `/modules`)
+3. Find **Interview Lens** in the module list
+4. Click the toggle to **enable** it
+5. The page will reload — **Interview Lens** will now appear in the left sidebar under the *Hiring* group
+
+> **If you don't see it in the sidebar after enabling**, try a hard refresh (`Ctrl+Shift+R` / `Cmd+Shift+R`) or restart the dev server. The sidebar reads module state from the database so a fresh session always picks it up.
+
+### 5. Configure and use
+
+1. Go to **Settings → Interview Lens** and add at least one **role** (give it focus notes — what your team actually cares about for this position).
+2. Click **New submission** in the sidebar (or go to `/interview-lens/new`).
+3. Pick the role, enter the candidate's name, and paste their code or provide a public GitHub URL.
+4. Click **Create submission** — ARI ingests the code and runs the AI analysis automatically.
+5. On the submission detail page, walk through the generated questions during the live interview, jot notes, and score each question 1–5.
+6. When done, click **Generate report** to produce the final hire/no-hire recommendation.
 
 ### Updating
 

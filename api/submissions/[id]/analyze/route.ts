@@ -7,6 +7,26 @@ import { z } from 'zod'
 import { generateBrief, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildSystemPrompt, buildUserPrompt } from '@/modules/interview-lens/lib/prompts'
 import type { BriefOutput } from '@/modules/interview-lens/lib/validation'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/modules/interview-lens/submissions/{id}/analyze',
+  operationId: 'analyzeInterviewLensSubmission',
+  summary: 'Trigger AI analysis to generate a brief and questions for a submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Analysis complete', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Submission not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    422: { description: 'No digest available', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    429: { description: 'Analysis cooldown active', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    502: { description: 'AI generation failed', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 const ANALYZE_COOLDOWN_MS = 60_000
 
@@ -54,7 +74,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
   await withRLS((db) =>
     db.update(interviewLensSubmissions)
       .set({ status: 'analyzing', errorMessage: null })
-      .where(eq(interviewLensSubmissions.id, id))
+      .where(and(eq(interviewLensSubmissions.id, id), eq(interviewLensSubmissions.userId, user.id)))
   )
 
   try {
@@ -70,8 +90,8 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     // Persist brief + questions atomically, then flip status.
     await withRLS(async (db) => {
       await db.transaction(async (tx) => {
-        await tx.delete(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id))
-        await tx.delete(interviewLensBriefs).where(eq(interviewLensBriefs.submissionId, id))
+        await tx.delete(interviewLensQuestions).where(and(eq(interviewLensQuestions.submissionId, id), eq(interviewLensQuestions.userId, user.id)))
+        await tx.delete(interviewLensBriefs).where(and(eq(interviewLensBriefs.submissionId, id), eq(interviewLensBriefs.userId, user.id)))
         await tx.insert(interviewLensBriefs).values({
           userId: user.id,
           submissionId: id,
@@ -97,7 +117,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       })
       await db.update(interviewLensSubmissions)
         .set({ status: 'ready', errorMessage: null })
-        .where(eq(interviewLensSubmissions.id, id))
+        .where(and(eq(interviewLensSubmissions.id, id), eq(interviewLensSubmissions.userId, user.id)))
     })
 
     return NextResponse.json({ success: true })
@@ -109,8 +129,8 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     await withRLS((db) =>
       db.update(interviewLensSubmissions)
         .set({ status: 'failed', errorMessage: message.slice(0, 1000) })
-        .where(eq(interviewLensSubmissions.id, id))
+        .where(and(eq(interviewLensSubmissions.id, id), eq(interviewLensSubmissions.userId, user.id)))
     )
-    return NextResponse.json({ error: message }, { status: 502 })
+    return NextResponse.json({ error: 'Analysis failed. Please try again.' }, { status: 502 })
   }
 }

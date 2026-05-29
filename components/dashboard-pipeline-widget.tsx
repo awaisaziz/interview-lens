@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, Loader2, Microscope } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { usePipeline } from '../hooks/use-interview-lens'
 
 const statusColor: Record<string, string> = {
@@ -16,6 +17,7 @@ const statusColor: Record<string, string> = {
 
 export function InterviewLensPipelineWidget() {
   const { data: pipeline = [], isLoading, isError, refetch } = usePipeline()
+  const router = useRouter()
 
   if (isLoading) {
     return (
@@ -83,7 +85,7 @@ export function InterviewLensPipelineWidget() {
           </div>
         )}
 
-        <Button variant="ghost" size="sm" className="w-full mt-3 text-xs" onClick={() => window.location.href = '/interview-lens'}>
+        <Button variant="ghost" size="sm" className="w-full mt-3 text-xs" onClick={() => router.push('/interview-lens')}>
           <Microscope className="w-3 h-3 mr-1" />Open Interview Lens
         </Button>
       </CardContent>

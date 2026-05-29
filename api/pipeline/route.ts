@@ -3,6 +3,22 @@ import { getAuthenticatedUser } from '@/lib/auth-helpers'
 import { createErrorResponse } from '@/lib/api-helpers'
 import { interviewLensRoles, interviewLensSubmissions, interviewLensQuestions } from '@/lib/db/schema'
 import { avg, eq, inArray, desc } from 'drizzle-orm'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/modules/interview-lens/pipeline',
+  operationId: 'getInterviewLensPipeline',
+  summary: 'Get the hiring pipeline grouped by role with avg scores',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Pipeline data', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 export async function GET() {
   try {

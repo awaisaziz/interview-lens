@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +21,7 @@ export default function NewSubmissionPage() {
   const create = useCreateSubmission()
   const analyze = useAnalyzeSubmission()
   const { toast } = useToast()
+  const router = useRouter()
 
   const [roleId, setRoleId] = useState<string>('')
   const [candidateName, setCandidateName] = useState('')
@@ -62,11 +64,11 @@ export default function NewSubmissionPage() {
           if (partial && note) toast({ variant: 'destructive', title: 'Partial ingest', description: note })
           setPhase('analyzing')
           analyze.mutate(submission.id, {
-            onSuccess: () => { window.location.href = `/interview-lens/${submission.id}` },
+            onSuccess: () => { router.push(`/interview-lens/${submission.id}`) },
             onError: (e) => {
               // Analysis failed — still navigate so user can retry from the detail page
               toast({ variant: 'destructive', title: 'Analysis failed', description: e.message })
-              window.location.href = `/interview-lens/${submission.id}`
+              router.push(`/interview-lens/${submission.id}`)
             },
           })
         },
@@ -165,7 +167,7 @@ export default function NewSubmissionPage() {
           )}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" disabled={isBusy} onClick={() => window.location.href = '/interview-lens'}>Cancel</Button>
+            <Button type="button" variant="ghost" disabled={isBusy} onClick={() => router.push('/interview-lens')}>Cancel</Button>
             <Button type="submit" disabled={isBusy}>
               {phase === 'ingesting' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Ingesting…</>
                 : phase === 'analyzing' ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analysing…</>

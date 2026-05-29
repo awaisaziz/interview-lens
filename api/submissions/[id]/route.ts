@@ -4,6 +4,37 @@ import { createErrorResponse, toSnakeCase } from '@/lib/api-helpers'
 import { interviewLensSubmissions, interviewLensBriefs, interviewLensQuestions, interviewLensRoles, interviewLensReports } from '@/lib/db/schema'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/modules/interview-lens/submissions/{id}',
+  operationId: 'getInterviewLensSubmission',
+  summary: 'Get full submission detail including brief, questions, and report',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Submission detail', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/modules/interview-lens/submissions/{id}',
+  operationId: 'deleteInterviewLensSubmission',
+  summary: 'Delete a submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Deleted', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 const uuidParam = z.string().uuid()
 
@@ -24,7 +55,7 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
 
     const [role, briefs, questions, reports] = await Promise.all([
       withRLS((db) =>
-        db.select().from(interviewLensRoles).where(eq(interviewLensRoles.id, submission.roleId)).limit(1)
+        db.select().from(interviewLensRoles).where(and(eq(interviewLensRoles.id, submission.roleId), eq(interviewLensRoles.userId, user.id))).limit(1)
       ),
       withRLS((db) =>
         db.select({
@@ -40,7 +71,7 @@ export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: st
           .limit(1)
       ),
       withRLS((db) =>
-        db.select().from(interviewLensQuestions).where(eq(interviewLensQuestions.submissionId, id)).orderBy(asc(interviewLensQuestions.sortOrder))
+        db.select().from(interviewLensQuestions).where(and(eq(interviewLensQuestions.submissionId, id), eq(interviewLensQuestions.userId, user.id))).orderBy(asc(interviewLensQuestions.sortOrder))
       ),
       withRLS((db) =>
         db.select().from(interviewLensReports)

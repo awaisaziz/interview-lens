@@ -5,6 +5,39 @@ import { createSubmissionSchema } from '@/modules/interview-lens/lib/validation'
 import { buildDigest } from '@/modules/interview-lens/lib/digest'
 import { interviewLensSubmissions, interviewLensRoles } from '@/lib/db/schema'
 import { and, desc, eq } from 'drizzle-orm'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/modules/interview-lens/submissions',
+  operationId: 'listInterviewLensSubmissions',
+  summary: 'List submissions for the current user',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'List of submissions', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/modules/interview-lens/submissions',
+  operationId: 'createInterviewLensSubmission',
+  summary: 'Create a new candidate submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  request: { body: { content: { 'application/json': { schema: createSubmissionSchema } } } },
+  responses: {
+    201: { description: 'Created submission', content: { 'application/json': { schema: { type: 'object' } } } },
+    400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    422: { description: 'Digest build failed', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 export async function GET() {
   try {

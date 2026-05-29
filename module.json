@@ -33,7 +33,7 @@
     "coreFeatures": []
   },
   "database": {
-    "tables": ["interview_lens_roles", "interview_lens_submissions", "interview_lens_briefs", "interview_lens_questions"]
+    "tables": ["interview_lens_roles", "interview_lens_submissions", "interview_lens_briefs", "interview_lens_questions", "interview_lens_reports"]
   },
   "npmDependencies": {
     "react-markdown": "^9.0.1",

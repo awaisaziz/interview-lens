@@ -5,6 +5,39 @@ import { updateRoleSchema } from '@/modules/interview-lens/lib/validation'
 import { interviewLensRoles } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/modules/interview-lens/roles/{id}',
+  operationId: 'updateInterviewLensRole',
+  summary: 'Update an interview role',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  request: { body: { content: { 'application/json': { schema: updateRoleSchema } } } },
+  responses: {
+    200: { description: 'Updated role', content: { 'application/json': { schema: { type: 'object' } } } },
+    400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
+registry.registerPath({
+  method: 'delete',
+  path: '/api/modules/interview-lens/roles/{id}',
+  operationId: 'deleteInterviewLensRole',
+  summary: 'Delete an interview role',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Deleted', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 const uuidParam = z.string().uuid()
 

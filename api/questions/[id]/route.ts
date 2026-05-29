@@ -5,6 +5,25 @@ import { updateQuestionSchema } from '@/modules/interview-lens/lib/validation'
 import { interviewLensQuestions } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/modules/interview-lens/questions/{id}',
+  operationId: 'updateInterviewLensQuestion',
+  summary: 'Update interviewer notes, score, or skipped flag on a question',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  request: { body: { content: { 'application/json': { schema: updateQuestionSchema } } } },
+  responses: {
+    200: { description: 'Updated question', content: { 'application/json': { schema: { type: 'object' } } } },
+    400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 const uuidParam = z.string().uuid()
 

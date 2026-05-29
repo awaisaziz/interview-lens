@@ -10,9 +10,42 @@ import {
 } from '@/lib/db/schema'
 import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { generateReport } from '@/modules/interview-lens/lib/openai'
+import { generateReport, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildReportSystemPrompt, buildReportUserPrompt } from '@/modules/interview-lens/lib/prompts'
-import { OpenAIError } from '@/modules/interview-lens/lib/openai'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/modules/interview-lens/submissions/{id}/report',
+  operationId: 'getInterviewLensReport',
+  summary: 'Get the generated report for a submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Report', content: { 'application/json': { schema: { type: 'object' } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/modules/interview-lens/submissions/{id}/report',
+  operationId: 'generateInterviewLensReport',
+  summary: 'Generate a hire/no-hire report for a submission',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'Generated report', content: { 'application/json': { schema: { type: 'object' } } } },
+    400: { description: 'Submission not in valid state', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    502: { description: 'AI generation failed', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 const uuidParam = z.string().uuid()
 
@@ -58,7 +91,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     // Load role, brief, questions in parallel
     const [roles, briefs, questions] = await Promise.all([
       withRLS((db) =>
-        db.select().from(interviewLensRoles).where(eq(interviewLensRoles.id, submission.roleId)).limit(1)
+        db.select().from(interviewLensRoles).where(and(eq(interviewLensRoles.id, submission.roleId), eq(interviewLensRoles.userId, user.id))).limit(1)
       ),
       withRLS((db) =>
         db.select().from(interviewLensBriefs)
@@ -67,7 +100,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
       ),
       withRLS((db) =>
         db.select().from(interviewLensQuestions)
-          .where(eq(interviewLensQuestions.submissionId, id))
+          .where(and(eq(interviewLensQuestions.submissionId, id), eq(interviewLensQuestions.userId, user.id)))
           .orderBy(asc(interviewLensQuestions.sortOrder))
       ),
     ])

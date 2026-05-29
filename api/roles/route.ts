@@ -4,6 +4,38 @@ import { validateRequestBody, createErrorResponse, toSnakeCase } from '@/lib/api
 import { createRoleSchema } from '@/modules/interview-lens/lib/validation'
 import { interviewLensRoles } from '@/lib/db/schema'
 import { desc, eq } from 'drizzle-orm'
+import { registry } from '@/lib/openapi/registry'
+import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+
+registry.registerPath({
+  method: 'get',
+  path: '/api/modules/interview-lens/roles',
+  operationId: 'listInterviewLensRoles',
+  summary: 'List interview roles for the current user',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  responses: {
+    200: { description: 'List of roles', content: { 'application/json': { schema: { type: 'object', properties: { roles: { type: 'array' } } } } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/modules/interview-lens/roles',
+  operationId: 'createInterviewLensRole',
+  summary: 'Create a new interview role',
+  tags: ['interview-lens'],
+  security: DEFAULT_SECURITY,
+  request: { body: { content: { 'application/json': { schema: createRoleSchema } } } },
+  responses: {
+    201: { description: 'Created role', content: { 'application/json': { schema: { type: 'object' } } } },
+    400: { description: 'Validation error', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    500: InternalServerErrorResponse,
+  },
+})
 
 export async function GET() {
   try {
