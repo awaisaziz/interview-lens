@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS interview_lens_roles (
   title TEXT NOT NULL,
   seniority TEXT,
   focus_notes TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- For existing installs that predate updated_at on roles
+ALTER TABLE interview_lens_roles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS idx_il_roles_user ON interview_lens_roles(user_id, created_at DESC);
 ALTER TABLE interview_lens_roles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS il_roles_rls_select ON interview_lens_roles;
@@ -39,8 +42,12 @@ CREATE TABLE IF NOT EXISTS interview_lens_submissions (
   repo_digest TEXT,
   error_message TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','analyzing','ready','failed','interviewed')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- For existing installs that predate updated_at on submissions
+ALTER TABLE interview_lens_submissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 CREATE INDEX IF NOT EXISTS idx_il_submissions_user_role ON interview_lens_submissions(user_id, role_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_il_submissions_status ON interview_lens_submissions(user_id, status);
 ALTER TABLE interview_lens_submissions ENABLE ROW LEVEL SECURITY;

@@ -62,7 +62,6 @@ export async function PUT(request: NextRequest) {
     if (!validation.success) return validation.response
     const { user, withRLS } = await getAuthenticatedUser()
     if (!user || !withRLS) return createErrorResponse('Unauthorized', 401)
-    const patch = JSON.stringify(validation.data)
     await withRLS((db) =>
       db.insert(moduleSettings).values({
         userId: user.id,
@@ -71,7 +70,9 @@ export async function PUT(request: NextRequest) {
       }).onConflictDoUpdate({
         target: [moduleSettings.userId, moduleSettings.moduleId],
         set: {
-          settings: sql`COALESCE(${moduleSettings.settings}, '{}'::jsonb) || ${patch}::jsonb`,
+          // Pass validation.data directly so Drizzle parameterizes it — avoids
+          // a stray intermediate string and makes the binding intent explicit.
+          settings: sql`COALESCE(${moduleSettings.settings}, '{}'::jsonb) || ${validation.data}::jsonb`,
           updatedAt: sql`timezone('utc'::text, now())`,
         },
       })

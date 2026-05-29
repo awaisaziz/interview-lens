@@ -14,6 +14,14 @@ import { useToast } from '@/hooks/use-toast'
 import { useRouter } from 'next/navigation'
 
 const TIERS: Tier[] = ['easy', 'medium', 'hard']
+
+function isSafeUrl(url: string): boolean {
+  try {
+    return /^https?:\/\//i.test(new URL(url).href)
+  } catch {
+    return false
+  }
+}
 const tierLabel: Record<Tier, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }
 
 function statusBadge(status: string) {
@@ -68,7 +76,9 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             {role?.title}{role?.seniority ? ` · ${role.seniority}` : ''} · {submission.source_type === 'github_url' ? 'GitHub' : 'Pasted'}
-            {submission.source_ref && <> · <a href={submission.source_ref} target="_blank" rel="noopener noreferrer" className="underline">{submission.source_ref}</a></>}
+            {submission.source_ref && isSafeUrl(submission.source_ref) && (
+              <> · <a href={submission.source_ref} target="_blank" rel="noopener noreferrer" className="underline" aria-label={`View source: ${submission.source_ref}`}>{submission.source_ref}</a></>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

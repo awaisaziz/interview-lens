@@ -10,6 +10,7 @@ export const interviewLensRoles = pgTable("interview_lens_roles", {
   seniority: text(),
   focusNotes: text("focus_notes"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
   index("idx_il_roles_user").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
   pgPolicy("il_roles_rls_select", { as: "permissive", for: "select", to: ["public"], using: rlsUserMatch }),
@@ -30,6 +31,7 @@ export const interviewLensSubmissions = pgTable("interview_lens_submissions", {
   errorMessage: text("error_message"),
   status: text().notNull().default('pending'),
   createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
   index("idx_il_submissions_user_role").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.roleId.asc().nullsLast().op("uuid_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
   index("idx_il_submissions_status").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),

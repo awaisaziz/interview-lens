@@ -6,6 +6,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { registry } from '@/lib/openapi/registry'
 import { DEFAULT_SECURITY, ErrorResponseSchema, InternalServerErrorResponse } from '@/lib/openapi/common'
+import { reportListItemSchema } from '@/modules/interview-lens/lib/validation'
 
 registry.registerPath({
   method: 'get',
@@ -15,7 +16,10 @@ registry.registerPath({
   tags: ['interview-lens'],
   security: DEFAULT_SECURITY,
   responses: {
-    200: { description: 'List of reports', content: { 'application/json': { schema: { type: 'object' } } } },
+    200: {
+      description: 'List of reports',
+      content: { 'application/json': { schema: z.object({ reports: z.array(reportListItemSchema) }).openapi('InterviewLensReportListResponse') } },
+    },
     401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
     500: InternalServerErrorResponse,
   },

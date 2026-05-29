@@ -15,7 +15,9 @@ export const createSubmissionSchema = z.object({
   role_id: uuid,
   candidate_name: z.string().min(1).max(200),
   source_type: z.enum(['github_url', 'pasted_code']),
-  source_ref: z.string().url().max(500).nullable().optional(),
+  source_ref: z.string().url()
+    .refine((u) => /^https?:\/\//i.test(u), { message: 'URL must use http or https' })
+    .max(500).nullable().optional(),
   pasted_content: z.string().max(200_000).nullable().optional(),
 }).refine(
   (v) => (v.source_type === 'github_url' ? !!v.source_ref : !!v.pasted_content),
@@ -64,9 +66,20 @@ export const reportOutputSchema = z.object({
   report_md: z.string().min(1).max(12000),
   recommendation_md: z.string().min(1).max(4000),
   hire_score: z.number().int().min(0).max(100),
-}).strict()
+}).strict().openapi('InterviewLensReportOutput')
 
 export type ReportOutput = z.infer<typeof reportOutputSchema>
+
+// ─── API response schemas ────────────────────────────────────────────────
+export const reportListItemSchema = z.object({
+  id: z.string().uuid(),
+  submission_id: z.string().uuid(),
+  candidate_name: z.string(),
+  role_id: z.string().uuid(),
+  role_title: z.string(),
+  hire_score: z.number().int().min(0).max(100),
+  generated_at: z.string(),
+}).openapi('InterviewLensReportListItem')
 
 export const reportJsonSchema = {
   name: 'interview_report',

@@ -8,7 +8,7 @@ import {
   interviewLensRoles,
   interviewLensReports,
 } from '@/lib/db/schema'
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { generateReport, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildReportSystemPrompt, buildReportUserPrompt } from '@/modules/interview-lens/lib/prompts'
@@ -174,8 +174,8 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
           reportMd: reportOutput.report_md,
           recommendationMd: reportOutput.recommendation_md,
           hireScore: reportOutput.hire_score,
-          generatedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          generatedAt: sql`NOW()`,
+          updatedAt: sql`NOW()`,
         },
       })
       .returning()
