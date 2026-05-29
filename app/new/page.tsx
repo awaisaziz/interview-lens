@@ -105,11 +105,11 @@ export default function NewSubmissionPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="candidate">Candidate name</Label>
-                  <Input id="candidate" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} placeholder="Jane Doe" required maxLength={200} />
+                  <Input id="candidate" value={candidateName} onChange={(e) => { setCandidateName(e.target.value); setErr(null) }} placeholder="Jane Doe" required maxLength={200} disabled={isBusy} />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="role-select">Role</Label>
-                  <Select value={roleId} onValueChange={setRoleId}>
+                  <Select value={roleId} onValueChange={(v) => { setRoleId(v); setErr(null) }} disabled={isBusy}>
                     <SelectTrigger id="role-select"><SelectValue placeholder="Select role…" /></SelectTrigger>
                     <SelectContent>
                       {roles.map((r) => <SelectItem key={r.id} value={r.id}>{r.title}{r.seniority ? ` · ${r.seniority}` : ''}</SelectItem>)}
@@ -126,7 +126,7 @@ export default function NewSubmissionPage() {
               <CardDescription>Pasted code is fastest and most reliable.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={tab} onValueChange={(v) => setTab(v as 'pasted_code' | 'github_url')}>
+              <Tabs value={tab} onValueChange={(v) => { setTab(v as 'pasted_code' | 'github_url'); setErr(null) }}>
                 <TabsList>
                   <TabsTrigger value="pasted_code">Paste code (primary)</TabsTrigger>
                   <TabsTrigger value="github_url">GitHub URL</TabsTrigger>
@@ -135,18 +135,20 @@ export default function NewSubmissionPage() {
                   <p className="text-xs text-muted-foreground">Paste the README plus the most representative source files. Separate files with a line like <code className="font-mono">--- src/app.ts ---</code>.</p>
                   <Textarea
                     value={pasted}
-                    onChange={(e) => setPasted(e.target.value)}
+                    onChange={(e) => { setPasted(e.target.value); setErr(null) }}
                     placeholder={'--- README.md ---\n# My project\n...\n\n--- src/app.ts ---\nexport function ...'}
                     rows={16}
                     className="font-mono text-xs"
+                    disabled={isBusy}
                   />
                 </TabsContent>
                 <TabsContent value="github_url" className="space-y-2">
                   <Input
                     value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
+                    onChange={(e) => { setGithubUrl(e.target.value); setErr(null) }}
                     placeholder="https://github.com/owner/repo"
                     type="url"
+                    disabled={isBusy}
                   />
                   <p className="text-xs text-muted-foreground">Public repos only (unauthenticated, 60 req/hr ceiling). If GitHub fails, the form will tell you to paste instead.</p>
                 </TabsContent>

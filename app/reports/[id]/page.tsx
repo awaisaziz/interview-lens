@@ -64,7 +64,7 @@ function HireScoreRing({ score }: { score: number }) {
   const dash = (score / 100) * circ
 
   return (
-    <div className="flex flex-col items-center gap-3" aria-label={`Hire score: ${score} out of 100, ${label}`}>
+    <div className="flex flex-col items-center gap-3">
       <div className="relative w-36 h-36">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
           <circle cx="60" cy="60" r={r} fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
@@ -80,6 +80,7 @@ function HireScoreRing({ score }: { score: number }) {
           <span className="text-xs text-muted-foreground">/100</span>
         </div>
       </div>
+      <span className="sr-only">Hire score: {score} out of 100</span>
       <Badge variant="secondary" className={`text-sm px-3 py-1 ${badgeColor}`}>{label}</Badge>
     </div>
   )

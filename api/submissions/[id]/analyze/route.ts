@@ -124,10 +124,12 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
 
     return NextResponse.json({ success: true })
   } catch (err) {
+    // Use a generic message for non-OpenAI errors to avoid persisting internal system
+    // error details (stack traces, service URLs, etc.) into the user-visible error_message.
     const message = err instanceof OpenAIError
-      ? 'Analysis failed: schema validation error'
-      : err instanceof Error ? err.message : 'Analysis failed'
-    console.error('Analyze error:', message)
+      ? 'Analysis failed: model output did not match expected schema'
+      : 'Analysis failed. Please try again.'
+    console.error('Analyze error:', err instanceof Error ? err.message : err)
     await withRLS((db) =>
       db.update(interviewLensSubmissions)
         .set({ status: 'failed', errorMessage: message.slice(0, 1000) })

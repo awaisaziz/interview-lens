@@ -93,6 +93,7 @@ export const interviewLensReports = pgTable("interview_lens_reports", {
   recommendationMd: text("recommendation_md").notNull(),
   hireScore: integer("hire_score").notNull(),
   generatedAt: timestamp("generated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
 }, (table) => [
   index("idx_il_reports_user").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.generatedAt.desc().nullsFirst().op("timestamptz_ops")),
   check("il_reports_hire_score_check", sql`hire_score BETWEEN 0 AND 100`),

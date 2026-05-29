@@ -98,9 +98,10 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
         <div className="space-y-2 pt-2 border-t">
           <label htmlFor={`notes-${question.id}`} className="text-xs font-medium text-muted-foreground">Candidate's answer / notes <span className="font-normal">(saves automatically)</span></label>
           <Textarea id={`notes-${question.id}`} value={notes} onChange={(e) => onNotesChange(e.target.value)} placeholder="What did the candidate say? Key points, examples they mentioned…" rows={3} className="text-sm" disabled={skipped} />
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Your rating</span>
-            <span className="text-xs text-muted-foreground/60">— how did you feel about this answer?</span>
+          <fieldset className="flex items-center gap-2 border-0 p-0 m-0">
+            <legend className="sr-only">Score for this answer</legend>
+            <span className="text-xs text-muted-foreground" aria-hidden="true">Your rating</span>
+            <span className="text-xs text-muted-foreground/60" aria-hidden="true">— how did you feel about this answer?</span>
             {[1, 2, 3, 4, 5].map((n) => (
               <Button
                 key={n}
@@ -110,7 +111,8 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
                 className="h-7 w-7 p-0"
                 onClick={() => onScoreChange(score === n ? null : n)}
                 disabled={update.isPending || skipped}
-                aria-label={`Rate ${n} out of 5`}
+                aria-label={`${n} out of 5${score === n ? ' (selected)' : ''}`}
+                aria-pressed={score === n}
               >
                 {n}
               </Button>
@@ -118,7 +120,7 @@ export function QuestionCard({ question, submissionId }: { question: Question; s
             {score !== null && (
               <Button type="button" size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => onScoreChange(null)}>clear</Button>
             )}
-          </div>
+          </fieldset>
         </div>
       </CardContent>
     </Card>

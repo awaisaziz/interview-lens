@@ -131,7 +131,7 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
       {!brief && submission.status === 'pending' && (
         <Card>
           <CardContent className="py-12 text-center space-y-3">
-            <Sparkles className="w-10 h-10 mx-auto text-muted-foreground" />
+            <Sparkles className="w-10 h-10 mx-auto text-muted-foreground" aria-hidden="true" />
             <p className="text-sm text-muted-foreground">No brief yet. Click <strong>Generate brief</strong> to run the analysis.</p>
           </CardContent>
         </Card>

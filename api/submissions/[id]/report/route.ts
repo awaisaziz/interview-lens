@@ -8,7 +8,7 @@ import {
   interviewLensRoles,
   interviewLensReports,
 } from '@/lib/db/schema'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { generateReport, OpenAIError } from '@/modules/interview-lens/lib/openai'
 import { buildReportSystemPrompt, buildReportUserPrompt } from '@/modules/interview-lens/lib/prompts'
@@ -33,15 +33,16 @@ registry.registerPath({
 registry.registerPath({
   method: 'post',
   path: '/api/modules/interview-lens/submissions/{id}/report',
-  operationId: 'generateInterviewLensReport',
+  operationId: 'createInterviewLensReport',
   summary: 'Generate a hire/no-hire report for a submission',
   tags: ['interview-lens'],
   security: DEFAULT_SECURITY,
   responses: {
-    200: { description: 'Generated report', content: { 'application/json': { schema: { type: 'object' } } } },
+    201: { description: 'Generated report', content: { 'application/json': { schema: { type: 'object' } } } },
     400: { description: 'Submission not in valid state', content: { 'application/json': { schema: ErrorResponseSchema } } },
     401: { description: 'Unauthorized', content: { 'application/json': { schema: ErrorResponseSchema } } },
     404: { description: 'Not found', content: { 'application/json': { schema: ErrorResponseSchema } } },
+    429: { description: 'Report cooldown active', content: { 'application/json': { schema: ErrorResponseSchema } } },
     502: { description: 'AI generation failed', content: { 'application/json': { schema: ErrorResponseSchema } } },
     500: InternalServerErrorResponse,
   },
@@ -62,6 +63,7 @@ registry.registerPath({
 })
 
 const uuidParam = z.string().uuid()
+const REPORT_COOLDOWN_MS = 60_000
 
 export async function GET(_request: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -100,6 +102,21 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     const submission = subs[0]
     if (submission.status !== 'ready' && submission.status !== 'interviewed') {
       return createErrorResponse('Submission must be in ready or interviewed state to generate a report', 400)
+    }
+
+    // Rate-limit: reject regeneration if a report was generated within the last 60 seconds.
+    const existingReport = await withRLS((db) =>
+      db.select({ generatedAt: interviewLensReports.generatedAt })
+        .from(interviewLensReports)
+        .where(and(eq(interviewLensReports.submissionId, id), eq(interviewLensReports.userId, user.id)))
+        .orderBy(desc(interviewLensReports.generatedAt))
+        .limit(1)
+    )
+    if (existingReport.length > 0) {
+      const age = Date.now() - new Date(existingReport[0].generatedAt).getTime()
+      if (age < REPORT_COOLDOWN_MS) {
+        return createErrorResponse('Report was generated recently. Please wait before regenerating.', 429)
+      }
     }
 
     // Load role, brief, questions in parallel
@@ -158,6 +175,7 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
           recommendationMd: reportOutput.recommendation_md,
           hireScore: reportOutput.hire_score,
           generatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       })
       .returning()
@@ -173,7 +191,8 @@ export async function POST(_request: NextRequest, ctx: { params: Promise<{ id: s
     return NextResponse.json({ report: toSnakeCase(upserted[0]) }, { status: 201 })
   } catch (err) {
     if (err instanceof OpenAIError) {
-      return createErrorResponse(`AI error: ${err.message}`, 502)
+      console.error('POST report AI error:', err.message)
+      return createErrorResponse('AI report generation failed. Please try again.', 502)
     }
     console.error('POST report error:', err instanceof Error ? err.message : err)
     return createErrorResponse('Internal server error', 500)

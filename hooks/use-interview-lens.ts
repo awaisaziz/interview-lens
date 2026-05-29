@@ -324,7 +324,16 @@ export function useGenerateReport(submissionId: string) {
       const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/submissions/${submissionId}/report`, { method: 'POST' }))
       return j.report
     },
-    onError: () => {
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: submissionKey(submissionId) })
+      await qc.cancelQueries({ queryKey: ['interview-lens', 'report', submissionId] })
+      const previousReport = qc.getQueryData<Report | null | undefined>(['interview-lens', 'report', submissionId])
+      return { previousReport, hasPrevious: previousReport !== undefined }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.hasPrevious) {
+        qc.setQueryData(['interview-lens', 'report', submissionId], ctx.previousReport)
+      }
       qc.invalidateQueries({ queryKey: submissionKey(submissionId) })
       qc.invalidateQueries({ queryKey: ['interview-lens', 'report', submissionId] })
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
@@ -349,12 +358,15 @@ export function useDeleteReport() {
     onMutate: async (submissionId) => {
       await qc.cancelQueries({ queryKey: ['interview-lens', 'report', submissionId] })
       await qc.cancelQueries({ queryKey: REPORTS_KEY })
-      const previousReport = qc.getQueryData<Report | null>(['interview-lens', 'report', submissionId])
+      const previousReport = qc.getQueryData<Report | null | undefined>(['interview-lens', 'report', submissionId])
+      // Track whether we had a cached value so we can safely rollback even when
+      // the cached report was null (no report) vs undefined (cache miss).
+      const hasPrevious = previousReport !== undefined
       qc.setQueryData(['interview-lens', 'report', submissionId], null)
-      return { previousReport }
+      return { previousReport, hasPrevious }
     },
     onError: (_e, submissionId, ctx) => {
-      if (ctx?.previousReport !== undefined) qc.setQueryData(['interview-lens', 'report', submissionId], ctx.previousReport)
+      if (ctx?.hasPrevious) qc.setQueryData(['interview-lens', 'report', submissionId], ctx.previousReport)
     },
     onSettled: (_d, _e, submissionId) => {
       qc.invalidateQueries({ queryKey: submissionKey(submissionId) })

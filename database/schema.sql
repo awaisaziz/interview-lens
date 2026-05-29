@@ -124,10 +124,14 @@ CREATE TABLE IF NOT EXISTS interview_lens_reports (
   submission_id  UUID NOT NULL REFERENCES interview_lens_submissions(id) ON DELETE CASCADE,
   report_md      TEXT NOT NULL,
   recommendation_md TEXT NOT NULL,
-  hire_score     INTEGER NOT NULL,
+  hire_score     INTEGER NOT NULL CHECK (hire_score BETWEEN 0 AND 100),
   generated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (submission_id, user_id)
 );
+-- For existing installs that predate updated_at on reports
+ALTER TABLE interview_lens_reports ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 CREATE INDEX IF NOT EXISTS idx_il_reports_user ON interview_lens_reports(user_id, generated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_il_reports_submission ON interview_lens_reports(submission_id);
 ALTER TABLE interview_lens_reports ENABLE ROW LEVEL SECURITY;

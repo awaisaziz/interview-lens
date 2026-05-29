@@ -47,6 +47,9 @@ function digestFromPaste(raw: string): string {
 }
 
 async function digestFromGithub(url: string): Promise<DigestResult> {
+  // SSRF guard: parseGithubUrl() validates hostname (github.com only) and path format
+  // before any network call. The owner/repo values are extracted and used to construct
+  // hardcoded API/raw URLs — the user-supplied URL is never fetched directly.
   const parsed = parseGithubUrl(url)
   if (!parsed) {
     return { digest: '', partial: true, note: 'Not a recognized GitHub URL. Paste README/code instead.' }
