@@ -18,6 +18,7 @@ Turn a candidate's take-home project into a structured interview brief in second
   - Tiered (easy / medium / hard) interview questions, each tied to a specific file, with a *strong-answer rubric* so even a non-expert interviewer can evaluate responses
   - A **signal report** flagging where the candidate made real decisions vs where the code looks like untouched AI scaffolding
 - **Capture** interviewer notes and 1–5 scores per question, live, on the detail page.
+- **Report** — a second OpenAI Structured-Outputs call turns the brief plus your live scores/notes into a hire/no-hire recommendation with a 0–100 hire score and a per-tier score breakdown. Print/export-as-PDF ready.
 - **Pipeline view** on the dashboard groups candidates by role with average scores.
 
 ## Installation
@@ -110,9 +111,13 @@ The candidate's project is **untrusted input**. The module's defenses:
 | Prompt injection in README/code | Candidate text is wrapped in `<UNTRUSTED_CANDIDATE_INPUT>` tags. The system message tells the model to treat everything inside as data, ignore directives, and flag injection attempts in the signal report. |
 | Model schema drift | Uses OpenAI **Structured Outputs** (`json_schema`, `strict: true`), then re-validates with Zod before persisting. Anything off-schema → `status='failed'` with a stored `error_message`, never a partial write. |
 | Markdown XSS | Rendered with `react-markdown` + `rehype-sanitize`. Raw HTML stripped. |
-| Tenant isolation | Every API route calls `getAuthenticatedUser()` + `withRLS()`. RLS policies use `current_setting('app.current_user_id', true)` so a missing setting returns NULL rather than throwing. |
+| Tenant isolation | Every API route calls `getAuthenticatedUser()` + `withRLS()` **and** filters explicitly by `user_id`. RLS policies use `current_setting('app.current_user_id', true)` so a missing setting returns NULL rather than throwing. (Explicit filters are mandatory: the default Postgres role can `BYPASSRLS`.) |
 | GitHub rate-limit (60/hr unauth) | Paste is the primary path. GitHub is single-attempt with graceful "paste instead" fallback. The digest is **persisted on the submission row** so re-analyze never refetches. |
+| SSRF via GitHub URL | `parseGithubUrl()` validates the hostname (`github.com` only) and path format before any network call. The user-supplied URL is never fetched directly — owner/repo are extracted and used to build hardcoded API/raw endpoints. |
+| Upstream error leakage | OpenAI / internal errors are logged server-side only. Clients receive generic messages; the persisted `error_message` on a failed submission is a sanitized, fixed string — never a raw stack trace. |
+| Abuse / cost runaway | Both `analyze` and `report` generation enforce a 60-second per-submission cooldown server-side, so repeated clicks can't spam paid OpenAI calls. |
 | Sensitive raw model output | Stored in `raw_model_output` JSONB for server-side debug only — never rendered in the UI. |
+| Input bounds | `hire_score` is constrained `0–100` at both the Zod and Postgres `CHECK` layers; free-text fields have length caps in the Zod schemas. |
 | Zip-bomb / path traversal | Zip upload is **not implemented** in v1. Documented as future work. |
 
 ## Architecture
@@ -129,18 +134,25 @@ modules-custom/interview-lens/
 │   ├── submissions/
 │   │   ├── route.ts         # ingest (builds + persists repo_digest)
 │   │   └── [id]/
-│   │       ├── route.ts     # detail (brief + questions joined)
-│   │       └── analyze/     # one-shot OpenAI call, transactional persist
+│   │       ├── route.ts     # detail (brief + questions + report joined)
+│   │       ├── analyze/     # one-shot OpenAI call, transactional persist
+│   │       └── report/      # generate / get / delete hire report (60s cooldown)
 │   ├── questions/[id]/      # PATCH notes/score
+│   ├── reports/             # list all reports (optionally filtered by role)
 │   ├── pipeline/            # rollup for dashboard widget
 │   └── settings/            # JSONB upsert
-├── app/                     # /interview-lens UI (list, new, detail)
-├── components/              # widget, settings panel, role manager, etc.
-├── hooks/                   # TanStack Query
+├── app/                     # /interview-lens UI
+│   ├── page.tsx             # submission list (filter by role)
+│   ├── new/                 # new submission form
+│   ├── [id]/                # submission detail (brief, questions, scoring)
+│   └── reports/             # reports index + /reports/[id] report view
+├── components/              # widget, settings panel, role manager, question card,
+│                            #   submission detail, safe-markdown renderer
+├── hooks/                   # TanStack Query (optimistic updates + rollback)
 ├── lib/
-│   ├── digest.ts            # ingest → repo_digest (paste + GitHub paths)
-│   ├── prompts.ts           # system + user prompt with injection guard
-│   ├── openai.ts            # raw-fetch client, Structured Outputs
+│   ├── digest.ts            # ingest → repo_digest (paste + GitHub paths, SSRF guard)
+│   ├── prompts.ts           # system + user prompts with injection guard
+│   ├── openai.ts            # raw-fetch client, Structured Outputs (brief + report)
 │   └── validation.ts        # Zod schemas (request + model output) + JSON Schema
 └── types/
 ```
