@@ -141,7 +141,7 @@ export default function InterviewLensListPage() {
                       </div>
                       <Button variant="ghost" size="sm" className="text-red-600" disabled={deleteSubmission.isPending} aria-label="Delete submission" onClick={() => {
                         if (confirm(`Delete submission for ${s.candidate_name}?`)) {
-                          deleteSubmission.mutate(s.id, { onError: (e) => toast({ variant: 'destructive', title: 'Delete failed', description: e.message }) })
+                          deleteSubmission.mutate(s.id, { onSuccess: () => toast({ title: 'Submission deleted' }), onError: (e) => toast({ variant: 'destructive', title: 'Delete failed', description: e.message }) })
                         }
                       }}>
                         <Trash2 className="w-4 h-4" />

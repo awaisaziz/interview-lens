@@ -161,7 +161,7 @@ export default function ReportPage() {
             onClick={() => generateReport.mutate(undefined)}
             disabled={generateReport.isPending}
           >
-            {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+            {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" aria-hidden="true" /> : <RefreshCw className="w-3 h-3 mr-1" aria-hidden="true" />}
             Re-generate
           </Button>
         )}
@@ -175,7 +175,7 @@ export default function ReportPage() {
             onClick={handleDelete}
             disabled={deleteReport.isPending}
           >
-            {deleteReport.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            {deleteReport.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" aria-hidden="true" /> : <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />}
             Delete
           </Button>
         )}
@@ -183,7 +183,7 @@ export default function ReportPage() {
 
       {isLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground py-20 justify-center">
-          <Loader2 className="w-4 h-4 animate-spin" />Loading report…
+          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />Loading report…
         </div>
       )}
 
@@ -202,7 +202,7 @@ export default function ReportPage() {
               onClick={() => generateReport.mutate(undefined)}
               disabled={generateReport.isPending}
             >
-              {generateReport.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</> : 'Generate Report'}
+              {generateReport.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />Generating…</> : 'Generate Report'}
             </Button>
           </CardContent>
         </Card>

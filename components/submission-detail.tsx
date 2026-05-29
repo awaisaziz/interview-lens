@@ -75,7 +75,7 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
           {submission.status !== 'analyzing' && submission.status !== 'failed' && (
             <Button variant="outline" onClick={runAnalyze} disabled={analyze.isPending}>
               {analyze.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analyzing…</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />Analyzing…</>
               ) : (
                 <><Sparkles className="w-4 h-4 mr-2" />{brief ? 'Re-generate brief' : 'Generate brief'}</>
               )}
@@ -94,7 +94,7 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
             ) : (
               <Button onClick={runGenerateReport} disabled={generateReport.isPending}>
                 {generateReport.isPending ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating report…</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />Generating report…</>
                 ) : (
                   <><ClipboardList className="w-4 h-4 mr-2" />Submit Interview &amp; Generate Report</>
                 )}
@@ -103,7 +103,7 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
           )}
           {canSubmit && report && (
             <Button variant="ghost" size="sm" onClick={runGenerateReport} disabled={generateReport.isPending} className="text-muted-foreground text-xs">
-              {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+              {generateReport.isPending ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <RefreshCw className="w-3 h-3 mr-1" aria-hidden="true" />}
               Re-generate
             </Button>
           )}
@@ -120,7 +120,7 @@ export function SubmissionDetailView({ detail }: { detail: DetailType }) {
 
       {submission.status === 'analyzing' && (
         <Alert>
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           <AlertTitle>Analyzing…</AlertTitle>
           <AlertDescription>Calling OpenAI with the persisted digest. This usually takes 10–30 seconds.</AlertDescription>
         </Alert>

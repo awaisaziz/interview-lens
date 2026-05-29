@@ -136,6 +136,7 @@ export default function ReportsListPage() {
                       e.stopPropagation()
                       if (!confirm(`Delete the report for ${r.candidate_name}? The interview answers and scores are kept.`)) return
                       deleteReport.mutate(r.submission_id, {
+                        onSuccess: () => toast({ title: 'Report deleted' }),
                         onError: (err) => toast({ variant: 'destructive', title: 'Delete failed', description: err.message }),
                       })
                     }}

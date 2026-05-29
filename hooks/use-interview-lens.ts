@@ -43,6 +43,23 @@ export function useCreateRole() {
       }))
       return j.role
     },
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: ROLES_KEY })
+      const previous = qc.getQueryData<Role[]>(ROLES_KEY)
+      const optimistic: Role = {
+        id: `temp-${Date.now()}`,
+        user_id: '',
+        title: input.title,
+        seniority: input.seniority ?? null,
+        focus_notes: input.focus_notes ?? null,
+        created_at: new Date().toISOString(),
+      }
+      qc.setQueryData<Role[]>(ROLES_KEY, (old = []) => [optimistic, ...old])
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(ROLES_KEY, ctx.previous)
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: ROLES_KEY }),
   })
 }
@@ -57,6 +74,17 @@ export function useUpdateRole() {
         body: JSON.stringify(args.patch),
       }))
       return j.role
+    },
+    onMutate: async (args) => {
+      await qc.cancelQueries({ queryKey: ROLES_KEY })
+      const previous = qc.getQueryData<Role[]>(ROLES_KEY)
+      qc.setQueryData<Role[]>(ROLES_KEY, (old = []) =>
+        old.map((r) => (r.id === args.id ? { ...r, ...args.patch } : r)),
+      )
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(ROLES_KEY, ctx.previous)
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ROLES_KEY }),
   })
@@ -274,10 +302,8 @@ export function useReports(roleId?: string) {
   return useQuery({
     queryKey: reportsKey(roleId),
     queryFn: async (): Promise<ReportListItem[]> => {
-      const url = roleId
-        ? `/api/modules/interview-lens/reports?role_id=${roleId}`
-        : '/api/modules/interview-lens/reports'
-      const j = await jsonOrThrow(await fetch(url))
+      const qs = roleId ? `?${new URLSearchParams({ role_id: roleId }).toString()}` : ''
+      const j = await jsonOrThrow(await fetch(`/api/modules/interview-lens/reports${qs}`))
       return j.reports ?? []
     },
   })

@@ -36,6 +36,10 @@ export async function GET() {
     if (roleIds.length === 0) return NextResponse.json({ pipeline: [] })
 
     const [subs, scores] = await Promise.all([
+      // This is a dashboard-widget rollup, not a full list view. We cap at the
+      // 500 most-recent submissions across all roles to keep the query cheap;
+      // the dedicated /interview-lens list page (paginated) is the source of
+      // truth for users who exceed this ceiling.
       withRLS((db) =>
         db.select().from(interviewLensSubmissions)
           .where(inArray(interviewLensSubmissions.roleId, roleIds))
